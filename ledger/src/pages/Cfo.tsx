@@ -195,10 +195,62 @@ function FileCard({ file }: { file: File }) {
   );
 }
 
+/**
+ * The CFO on a public demo copy (server/democfo.js): no question can be typed, since the demo has no AI.
+ * It offers example questions and shows an answer written ahead of time for each, and says so in plain
+ * words, with what a key on your own copy adds.
+ */
+function DemoCfo() {
+  const { data } = useData<any>('/api/cfo/demo');
+  const [turns, setTurns] = useState<{ q: string; a: string }[]>([]);
+  const [busy, setBusy] = useState('');
+  const end = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (turns.length) end.current?.scrollIntoView({ block: 'end', behavior: 'smooth' }); }, [turns]);
+  const show = async (id: string) => {
+    if (busy) return;
+    setBusy(id);
+    try { const r = await api(`/api/cfo/demo/${id}`); setTurns((t) => [...t, { q: r.q, a: r.reply }]); }
+    catch (e: any) { setTurns((t) => [...t, { q: data.questions.find((x: any) => x.id === id)?.q || '', a: e.message }]); }
+    setBusy('');
+  };
+  if (!data) return null;
+  const group = (kind: string) => data.questions.filter((x: any) => x.kind === kind);
+  const asked = new Set(turns.map((t) => t.q));
+  const buttons = (kind: string) => group(kind).map((x: any) => <button key={x.id} type="button" disabled={!!busy} className={asked.has(x.q) ? 'asked' : ''} onClick={() => show(x.id)}>{x.q}</button>);
+  return (
+    <div className="cfo cfo-demo">
+      <section className="card cfo-intro">
+        <CfoOwl size={turns.length ? 72 : 128} thinking={!!busy} />
+        <h2>Ask about your money, or about Ledger</h2>
+        <p className="sub">On your own copy you type any question and Claude answers from your figures. <b>This demo has no AI connected, so these are example questions with answers written ahead of time</b>, filled in with the demo household's made-up figures. Choose one to see what an answer looks like.</p>
+      </section>
+      {turns.length > 0 && (
+        <div className="cfo-thread" aria-live="polite">
+          {turns.map((t, i) => (
+            <div key={i}>
+              <div className="cfo-turn you"><p>{t.q}</p></div>
+              <div className="cfo-turn cfo"><small className="cfo-example">An example answer, written ahead of time</small><Answer text={t.a} /></div>
+            </div>
+          ))}
+          <div ref={end} />
+        </div>
+      )}
+      <section className="card cfo-demo-pick" data-go="cfo-demo">
+        <h3>About your money</h3>
+        <div className="cfo-ideas">{buttons('money')}</div>
+        <h3>About using Ledger</h3>
+        <div className="cfo-ideas">{buttons('app')}</div>
+      </section>
+      <p className="cfo-foot">With an Anthropic API key added in Settings on your own copy, the CFO answers whatever you ask in your own words. It looks up your real transactions, bills and forecast as it goes, remembers the conversation, reads a bank screenshot to catch Ledger up, looks up tax rules on official sites, and can propose a change for you to confirm. A question usually costs about a cent or less.</p>
+    </div>
+  );
+}
+
 export default function Cfo() {
   const gig = useGig();
   const ai = useAi();
   const { data: state } = useData<any>('/api/cfo');
+  const { data: auth } = useData<any>('/api/auth/status');
   const [turns, setTurns] = useState<Turn[]>([]);
   const [id, setId] = useState('');
   const [q, setQ] = useState('');
@@ -249,6 +301,7 @@ export default function Cfo() {
   };
   const fileBox = <input id="cfo-file" className="camera-box" type="file" accept="image/*,.csv,text/csv" tabIndex={-1} aria-hidden="true" onChange={attach} />;
 
+  if (auth?.demo) return <DemoCfo />;
   if (state && !state.ready) {
     return (
       <section className="card cfo-intro">

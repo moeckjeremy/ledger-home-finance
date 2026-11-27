@@ -601,6 +601,22 @@ function AccessSignIn({ hasPassword, canReset, canEmail, onDone }: { hasPassword
 /** One name per screen: a page, or one of the dashboard's detail views. */
 const pageKey = (page: string, view: string) => `${page}/${INSIGHTS.includes(view as InsightView) ? view : ''}`;
 
+/**
+ * The line across the top of a public demo copy (server/demo.js): the figures are made up, what a visitor
+ * changes is wiped, and what is switched off there. Shown on every page; there is nothing to dismiss.
+ */
+function DemoBanner() {
+  const { data: auth } = useData<any>('/api/auth/status');
+  const d = auth?.demo;
+  if (!d) return null;
+  return (
+    <div className="bank-attention demo-banner" role="note">
+      <span className="grow"><b>This is a demo.</b> Every figure here is made up.<span className="demo-more"> Click around and change anything you like: it is all wiped and started fresh within the hour. Bank sync, uploads and email are switched off here, and Ask your CFO shows example answers.</span></span>
+      {d.repo && <a className="button" href={`https://github.com/${d.repo}`} target="_blank" rel="noreferrer">Get Ledger</a>}
+    </div>
+  );
+}
+
 function Shell({ onAuthChanged }: { onAuthChanged: () => void }) {
   const [page, setPage] = useState<PageId>(fromHash);
   // The part after a slash picks a view within a page, as in #transactions/review.
@@ -721,10 +737,11 @@ function Shell({ onAuthChanged }: { onAuthChanged: () => void }) {
           <span>Ask your</span>
           <CfoSeal size={84} />
         </a>
-        {bank?.sampleData && <div className="sample-note">Sample data. <a href="#connections" onClick={jump(GO.bank)}>Connect your bank</a> to see your own.</div>}
+        {bank?.sampleData && <div className="sample-note">{bank?.demo ? 'A demo with made-up figures.' : <>Sample data. <a href="#connections" onClick={jump(GO.bank)}>Connect your bank</a> to see your own.</>}</div>}
       </nav>
 
       <main className="main" data-page={page}>
+        <DemoBanner />
         {page === 'dashboard' && <BankAttention a={bank?.attention} />}
         {page === 'dashboard' && <StubReminder r={stubs?.remind} />}
         {page === 'dashboard' && <StatementReminder due={stmts?.due} />}

@@ -14,6 +14,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import crypto from 'node:crypto';
 import { settleBudgets } from './rollover.js';
 import { howLedgerWorks } from './howto.js';
+import { hideNames, mask, unmask, unmaskInput } from './hidenames.js';
 import { db, getSetting, iso } from './db.js';
 import { apiKey, model, buildFacts, readableError } from './recap.js';
 import { noteUsage, aiSource, limitMessage, notPrivate, privateCats } from './ai.js';
@@ -394,10 +395,14 @@ function tidyUp() {
   while (conversations.size > 20) conversations.delete(conversations.keys().next().value);
 }
 
+const HIDDEN_NOTE = `\n\nThe household has chosen to hide names from you. People, employers, accounts and banks appear as plain labels ("Adult 1", "Employer 1", "Checking account 2", "Bank 1"). Use those labels exactly as written, in your answer and in anything you look up; Ledger puts the real names back before the household reads it. Do not remark on the labels or guess what they stand for.`;
+
 async function ask(convo, question, deps) {
   const client = new Anthropic({ apiKey: apiKey(), timeout: 120_000, maxRetries: 1 });
   const source = aiSource();
-  const messages = [...convo.messages, { role: 'user', content: question }];
+  // With "Hide names from the AI" on, the question and every figure go out with labels in place of the
+  // household's names, and the answer has them put back (server/hidenames.js). The kept conversation holds labels.
+  const messages = [...convo.messages, { role: 'user', content: mask(question) }];
   // Changes proposed while answering this question, to show with Confirm and Cancel.
   convo.fresh = [];
   const looked = [];
@@ -411,7 +416,7 @@ async function ask(convo, question, deps) {
       const send = () => client.messages.create({
         model: model(),
         max_tokens: 8000,
-        system: `${SYSTEM}\n\n${howLedgerWorks()}${web ? LOOKUP_SYSTEM : ''}${privateCats().length ? PRIVATE_NOTE : ''}${currencyNote() ? '\n\n' + currencyNote() : ''}\n\nToday is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} (${iso(new Date())}).`,
+        system: `${SYSTEM}\n\n${howLedgerWorks()}${web ? LOOKUP_SYSTEM : ''}${privateCats().length ? PRIVATE_NOTE : ''}${currencyNote() ? '\n\n' + currencyNote() : ''}${hideNames() ? HIDDEN_NOTE : ''}\n\nToday is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} (${iso(new Date())}).`,
         tools: web ? [...TOOLS, ...WEB_TOOLS] : TOOLS,
         messages,
       });
@@ -449,15 +454,15 @@ async function ask(convo, question, deps) {
       if (!text) throw new Error("Claude didn't give an answer. Try asking again.");
       convo.messages = messages;
       convo.turns++;
-      return { reply: response.stop_reason === 'max_tokens' ? `${text}\n\n(The answer was cut short for length.)` : text, looked: [...new Set(looked)], sources: [...(sources.size ? sources : found)].filter(([u]) => /^https:\/\/([a-z0-9-]+\.)*(irs\.gov|dfa\.arkansas\.gov|ssa\.gov)\//i.test(u)).slice(0, 4).map(([url, title]) => ({ url, title: sourceTitle(url, title) })), cost: round(cost), actions: convo.fresh.map((a) => ({ id: a.id, summary: a.summary })) };
+      return { reply: unmask(response.stop_reason === 'max_tokens' ? `${text}\n\n(The answer was cut short for length.)` : text), looked: [...new Set(looked)], sources: [...(sources.size ? sources : found)].filter(([u]) => /^https:\/\/([a-z0-9-]+\.)*(irs\.gov|dfa\.arkansas\.gov|ssa\.gov)\//i.test(u)).slice(0, 4).map(([url, title]) => ({ url, title: sourceTitle(url, title) })), cost: round(cost), actions: convo.fresh.map((a) => ({ id: a.id, summary: a.summary })) };
     }
     messages.push({
       role: 'user',
       content: calls.map((c) => {
         looked.push(LABELS[c.name] || c.name);
         let out, failed = false;
-        try { out = runTool(c.name, c.input, deps, convo); } catch (e) { out = { error: `That lookup failed: ${e.message}` }; failed = true; }
-        return { type: 'tool_result', tool_use_id: c.id, content: capped(out), ...(failed ? { is_error: true } : {}) };
+        try { out = runTool(c.name, unmaskInput(c.input), deps, convo); } catch (e) { out = { error: `That lookup failed: ${e.message}` }; failed = true; }
+        return { type: 'tool_result', tool_use_id: c.id, content: mask(capped(out)), ...(failed ? { is_error: true } : {}) };
       }),
     });
   }
@@ -489,11 +494,12 @@ async function askPlain(convo, question, deps) {
   const earlier = convo.plain.slice(-4).map((t) => `They asked: ${t.q}\nYou answered: ${t.a}`).join('\n\n');
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const text = await haAsk('a question about the household\'s money',
-    `${PLAIN_SYSTEM}\n\n${howLedgerWorks()}${privateCats().length ? PRIVATE_NOTE : ''}\n\nToday is ${today}.\n\nThe household's figures:\n${capped(facts, 45000)}${earlier ? `\n\nEarlier in this conversation:\n${earlier}` : ''}\n\nTheir question: ${question}`,
+    `${PLAIN_SYSTEM}\n\n${howLedgerWorks()}${privateCats().length ? PRIVATE_NOTE : ''}\n\nToday is ${today}.\n\n${hideNames() ? HIDDEN_NOTE : ''}\n\nThe household's figures:\n${mask(capped(facts, 45000))}${earlier ? `\n\nEarlier in this conversation:\n${mask(earlier)}` : ''}\n\nTheir question: ${mask(question)}`,
     'cfo', "your question, with this month's totals, your accounts, bills, debts and savings goals");
-  convo.plain.push({ q: question, a: text });
+  const shown = unmask(text);
+  convo.plain.push({ q: question, a: shown });
   convo.turns++;
-  return { reply: text, looked: ['this month', 'your accounts', 'your bills', 'the debt plan', 'your savings goals'], sources: [], cost: 0, actions: [] };
+  return { reply: shown, looked: ['this month', 'your accounts', 'your bills', 'the debt plan', 'your savings goals'], sources: [], cost: 0, actions: [] };
 }
 
 export function installCfo(app, deps) {
@@ -527,13 +533,13 @@ export function installCfo(app, deps) {
     if (!action) return res.status(404).json({ error: 'That suggestion has expired. Ask again and it will be offered afresh.' });
     convo.pending.delete(action.id);
     if (!req.body?.confirm) {
-      convo.messages.push({ role: 'user', content: `(The app reports: I cancelled your proposed change, "${action.summary}" Nothing was changed.)` }, { role: 'assistant', content: 'Understood, nothing was changed.' });
+      convo.messages.push({ role: 'user', content: mask(`(The app reports: I cancelled your proposed change, "${action.summary}" Nothing was changed.)`) }, { role: 'assistant', content: 'Understood, nothing was changed.' });
       return res.json({ done: false, note: 'Cancelled. Nothing was changed.' });
     }
     try {
       const note = carryOut(action);
       // Told to the conversation too, so a follow-up question knows it happened.
-      convo.messages.push({ role: 'user', content: `(The app reports: I confirmed your proposed change, "${action.summary}" It has been carried out.)` }, { role: 'assistant', content: 'Good, that change is made.' });
+      convo.messages.push({ role: 'user', content: mask(`(The app reports: I confirmed your proposed change, "${action.summary}" It has been carried out.)`) }, { role: 'assistant', content: 'Good, that change is made.' });
       res.json({ done: true, note });
     } catch (e) { res.status(500).json({ error: `That couldn't be done: ${e.message}` }); }
   });

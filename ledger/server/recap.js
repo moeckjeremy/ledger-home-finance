@@ -13,6 +13,7 @@ import { outlook } from './cashflow.js';
 import { status as vipkidStatus } from './vipkid.js';
 import { gig } from './gig.js';
 import { viaHa, haAsk, aiName } from './haai.js';
+import { hideNames, mask, unmask } from './hidenames.js';
 import { activeKey, familyCopy, forcedModel, noteUsage, aiSource, limitMessage, notPrivate, privateCats } from './ai.js';
 
 const MODELS = [
@@ -197,7 +198,7 @@ async function writeWithClaude(facts) {
     system: SYSTEM() + (currencyNote() ? '\n\n' + currencyNote() : ''),
     // A short, routine summary: low effort keeps it quick and inexpensive.
     output_config: { effort: 'low' },
-    messages: [{ role: 'user', content: `Today's figures:\n${JSON.stringify(facts, null, 1)}` }],
+    messages: [{ role: 'user', content: `Today's figures:\n${mask(JSON.stringify(facts, null, 1))}` }],
   };
   try {
     // If the model declines a request, the API retries it on a fallback model
@@ -209,7 +210,7 @@ async function writeWithClaude(facts) {
     if (response.stop_reason === 'refusal') throw new Error('Claude declined to write the recap.');
     const text = response.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
     if (!text) throw new Error('Claude returned an empty recap.');
-    return { text, model: response.model };
+    return { text: unmask(text), model: response.model };
   } catch (e) {
     throw readableError(e);
   }
@@ -222,7 +223,7 @@ async function recap(month, deps, force) {
   const useHa = viaHa();
   const useClaude = !useHa && apiKey() !== '';
   // The leading number changes whenever the recap's ingredients do, so old cached text isn't reused.
-  const key = `2|${facts.month}|${facts.is_current_month ? facts.today : 'final'}|${useHa ? 'ha' : useClaude ? model() : 'rules'}${currency() === 'USD' ? '' : `|${currency()}`}`;   // a recap written in another currency is not reused (dollar households keep their cached one)
+  const key = `2|${facts.month}|${facts.is_current_month ? facts.today : 'final'}|${useHa ? 'ha' : useClaude ? model() : 'rules'}${currency() === 'USD' ? '' : `|${currency()}`}${hideNames() ? '|hidden' : ''}`;   // a recap written in another currency is not reused (dollar households keep their cached one)
   let cache = {};
   try { cache = JSON.parse(getSetting('recap_cache', '{}')); } catch { /* start fresh */ }
   if (!force && cache[key]) return cache[key];
@@ -231,8 +232,8 @@ async function recap(month, deps, force) {
     let result;
     if (useHa) {
       try {
-        const text = await haAsk('the dashboard recap', `${SYSTEM()}${currencyNote() ? '\n\n' + currencyNote() : ''}\n\nToday's figures:\n${JSON.stringify(facts, null, 1)}`, 'recap', "this month's totals by category, bills due soon, the five largest purchases, and your debt and checking figures");
-        result = { text, source: 'ha', by: aiName(), at: Date.now() };
+        const text = await haAsk('the dashboard recap', `${SYSTEM()}${currencyNote() ? '\n\n' + currencyNote() : ''}\n\nToday's figures:\n${mask(JSON.stringify(facts, null, 1))}`, 'recap', "this month's totals by category, bills due soon, the five largest purchases, and your debt and checking figures");
+        result = { text: unmask(text), source: 'ha', by: aiName(), at: Date.now() };
       } catch (e) {
         result = { text: writeFromRules(facts), source: 'automatic', error: e.message, at: Date.now() };
       }

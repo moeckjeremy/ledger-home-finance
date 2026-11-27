@@ -13,14 +13,22 @@
 // device remembers what it has seen.
 export type NewsGo = { page?: string; fold?: string; at?: string; open?: 'cfo' };
 export const JUST_ADDED: [title: string, text: string, more?: { date: string; go?: NewsGo }][] = [
+  ['Try a different payoff plan', 'On the Debt page, "Try a different plan" sets smallest balance first beside highest rate first, and lets you try another monthly extra or a one-time amount to see what it would do. Nothing changes until you decide.', { date: '2026-11-27', go: { page: 'debt', fold: 'debt-try', at: '[data-go="plan-try"]' } }],
   ['Your own order and groups', 'On the Budgets page, move categories up and down, put them in groups of your own, merge two together or hide one you no longer use. Accounts and savings goals can be reordered too.', { date: '2026-11-26', go: { page: 'budgets', at: '[data-go="cat-organise"], [data-go="cat-group"]' } }],
   ['Leave an account out of the budget', 'For "fun money" accounts, a child\'s account, or anything you want to see but not count. On the Accounts page, choose "Leave out of the budget" on an account: its balance still shows, and its spending stops counting toward your budgets and totals.', { date: '2026-11-24', go: { page: 'accounts', at: '[data-go="off-budget"], [data-go~="account-row"] .more-btn' } }],
   ['Hand your CFO a bank screenshot', 'The paperclip in Ask your CFO takes a screenshot of your bank\'s recent activity, or its CSV export, and adds what Ledger is missing. You tick the rows first, and nothing is counted twice when the bank catches up.', { date: '2026-11-24', go: { page: 'dashboard', open: 'cfo', at: '.cfo-attach, .cfo-idea-file' } }],
   ['Allowances', 'A notebook of what you hold for each child: a weekly allowance that adds itself, money for chores, and what they spend, with spend, save and give jars if you like. Switch it on in Settings, "Allowances".', { date: '2026-11-24', go: { page: 'connections', fold: 'allowance', at: '[data-go="allowance-switch"]' } }],
-  ['Give every dollar a job', 'A second way to budget, at the foot of the Budgets page under "Choose your budgeting method". Pay that arrives waits to be assigned, and you hand it out to categories until none is left. Switch it off any time.', { date: '2026-11-23', go: { page: 'budgets', fold: 'budget-zero', at: '[data-go="zero-switch"]' } }],
 ];
 
 export const UPDATES: [date: string, items: string[]][] = [
+  ['2026-11-27', [
+    'Try a different plan, on the Debt page: smallest balance first and highest rate first side by side, with boxes to try another monthly extra or a one-time amount. It changes nothing.',
+    'Months of expenses covered, on the Accounts page: how long your savings would last at your usual spending.',
+    'Hide names from the AI (Settings, "AI recap and logos"): the recap and Ask your CFO are sent plain labels in place of your names, employers, accounts and banks, and your own names are put back in the answer.',
+    'The library Ledger sends email with was updated to close published security advisories.',
+    'Reading a receipt: your CFO\'s owl reads it while you wait, then says in a sentence where you shopped, what for, how much and on which account, before you check the details and add it.',
+    'A pay link on a bill: on the Recurring page, "Add a pay link" saves the address of the page where you pay it, and "Pay it" opens that page in a new tab. Ledger never pays anything itself.',
+  ]],
   ['2026-11-26', [
     'Categories can be put in your own order: on the Budgets page, the arrows beside a category (or "⋯" on a phone) move it up or down, and every category menu follows.',
     'Organise, beside each category on the Budgets page, moves it between flexible spending and fixed bills or into a group of your own, merges it into another category (its history goes with it), or hides one you no longer use.',

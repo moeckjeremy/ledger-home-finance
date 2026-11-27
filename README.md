@@ -5,6 +5,9 @@
 A household budget you run yourself. One small server, one SQLite file, no account with anyone:
 your finances stay on a machine you own.
 
+<p align="center"><a href="https://ledger-demo-ad6a24.fly.dev"><img src="docs/readme/try.svg" width="260" alt="Try the live demo"></a></p>
+<p align="center"><sub>Nothing to install or sign up for. Every figure in the demo is made up, and whatever you change is wiped within the hour.<br>Bank sync, uploads and AI are switched off there; Ask your CFO shows example answers. It may take a couple of seconds to wake.</sub></p>
+
 ![Ledger's dashboard: what is left before payday, what is in checking, and spending against budget](docs/readme/dashboard.jpg)
 
 <table>

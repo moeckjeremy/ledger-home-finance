@@ -5,6 +5,61 @@ import { Fold, Logo, NumField, Skeleton } from '../ui';
 import { DebtGraph, DebtsTogether } from './DebtGraphs';
 import { StatementReader } from './Statements';
 
+/**
+ * "Try a different plan" (2026-11-27): the same debts paid smallest balance first (the plan this page
+ * follows) and highest rate first, side by side, with boxes to try another monthly extra or a one-time
+ * amount. It reads only and changes nothing, and it never says which order is better: two sets of figures.
+ */
+function PlanTry({ plan }: { plan: any }) {
+  const base = plan.compare;
+  const [extra, setExtra] = useState('');
+  const [lump, setLump] = useState('');
+  const [tried, setTried] = useState<any>(null);
+  const [err, setErr] = useState('');
+  useEffect(() => {
+    if (extra.trim() === '' && lump.trim() === '') { setTried(null); setErr(''); return; }
+    const t = setTimeout(async () => {
+      try { const r = await api(`/api/debts/try?extra=${encodeURIComponent(extra.trim())}&lump=${encodeURIComponent(lump.trim())}`); setTried(r.tried); setErr(''); }
+      catch (e: any) { setErr(e.message); }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [extra, lump]);
+  if (!base || base.count === 0) return <p className="sub first">Once a debt other than a mortgage has a rate and a payment, this compares two orders of paying them off.</p>;
+  const c = tried || base;
+  const when = (m: number | null) => (m == null ? 'Not within 60 years' : m === 0 ? 'Now' : `${monthsFromNow(m)} (${duration(m)})`);
+  const col = (title: string, sub: string, x: any, was: any) => (
+    <div className="plan-col">
+      <h3>{title}</h3><small>{sub}</small>
+      <div className="row"><span className="grow">Debt-free</span><b>{when(x.months)}</b></div>
+      <div className="row"><span className="grow">Interest from here</span><b>{money(x.interest)}</b></div>
+      <div className="row"><span className="grow">Paid first</span><b>{x.first}</b></div>
+      {tried && was && x.months != null && was.months != null && (x.months !== was.months || Math.abs(x.interest - was.interest) >= 1) && (
+        <small className="good">Against today's plan: {was.months - x.months > 0 ? `${duration(was.months - x.months)} sooner` : was.months - x.months < 0 ? `${duration(x.months - was.months)} later` : 'the same month'}, {was.interest - x.interest >= 0 ? `${money(was.interest - x.interest)} less interest` : `${money(x.interest - was.interest)} more interest`}.</small>
+      )}
+    </div>
+  );
+  const gap = c.smallest.interest - c.rate.interest;
+  return (
+    <div className="plan-try" data-go="plan-try">
+      <p className="sub first">Your {base.count === 1 ? 'debt' : `${base.count} debts`} other than a mortgage, with {money(c.extra)} a month on top of the regular payments{c.lump > 0 ? ` and ${money(c.lump)} put in once, now` : ''}. Nothing here changes your plan.</p>
+      <div className="add-grid">
+        <label className="field"><span>Try another extra each month</span><input inputMode="decimal" value={extra} placeholder={String(Math.round(base.extra))} onChange={(e) => setExtra(e.target.value)} /></label>
+        <label className="field"><span>Try a one-time amount, paid now</span><input inputMode="decimal" value={lump} placeholder="0" onChange={(e) => setLump(e.target.value)} /></label>
+      </div>
+      {err && <p className="error">{err}</p>}
+      <div className="plan-cols">
+        {col('Smallest balance first', 'The order this page follows', c.smallest, tried ? base.smallest : null)}
+        {col('Highest rate first', 'The same money, in a different order', c.rate, tried ? base.rate : null)}
+      </div>
+      <p className="sub">{c.same ? 'For your debts the two orders are the same, so the figures match.'
+        : c.smallest.months == null || c.rate.months == null ? 'At these payments at least one debt is never finished, so the two can\u2019t be compared to the end.'
+        : `Highest rate first costs ${money(Math.abs(gap))} ${gap >= 0 ? 'less' : 'more'} in interest${c.rate.months === c.smallest.months ? ' and finishes the same month' : c.rate.months < c.smallest.months ? ` and finishes ${duration(c.smallest.months - c.rate.months)} sooner` : ` and finishes ${duration(c.rate.months - c.smallest.months)} later`}. Smallest balance first clears the first debt sooner. Which suits you is your call.`}
+        {' '}A mortgage, a card paid in full each month and a loan kept at its regular payment are left out of both.</p>
+      {(extra.trim() !== '' || lump.trim() !== '') && <button className="link" onClick={() => { setExtra(''); setLump(''); }}>Back to today's figures</button>}
+    </div>
+  );
+}
+
 const GROUPS = [
   { type: 'credit', title: 'Credit cards' },
   { type: 'auto', title: 'Car loans' },
@@ -222,6 +277,9 @@ export default function Debt() {
 
       <Fold id="debt-graph" title="Your debts over time" note="A graph of everything you owe, heading to zero">
         <DebtsTogether />
+      </Fold>
+      <Fold id="debt-try" title="Try a different plan" note="Two payoff orders side by side, and what an extra amount would do">
+        <PlanTry plan={p} />
       </Fold>
       {graph != null && <DebtGraph id={graph} onClose={() => setGraph(null)} onUpload={() => { setReadFor(graph); setGraph(null); setReading(true); }} />}
       {reading && <StatementReader forAccount={readFor ?? undefined} onClose={() => { setReading(false); if (readFor != null) { setGraph(readFor); setReadFor(null); } }} onSaved={reload} />}

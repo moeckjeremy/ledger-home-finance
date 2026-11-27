@@ -131,6 +131,28 @@ function AddAccount({ onChanged }: { onChanged: () => void }) {
 }
 
 /** What each adult has, owes and has spent this month, once any account has been marked as someone's own. */
+/**
+ * How long the household's savings would last at its usual spending (server/cushion.js). One figure and
+ * how it was worked out. No target and no advice: the page never says how many months is enough.
+ */
+function CushionCard() {
+  const { data: c } = useData<any>('/api/cushion');
+  if (!c?.ready) return null;
+  const n = (v: number) => (v >= 10 ? Math.round(v) : v.toFixed(1).replace(/\.0$/, ''));
+  const word = (v: number) => (Number(n(v)) === 1 ? 'month' : 'months');
+  return (
+    <section className="card cushion" data-go="cushion">
+      <div className="card-head"><h2>Months of expenses covered</h2></div>
+      <div className="cushion-row">
+        <div className="cushion-figure"><b>{n(c.months)}</b><span>{word(c.months)}</span></div>
+        <p className="sub">Your savings of {money(c.savings)} would cover about {n(c.months)} {word(c.months)} of your usual spending, which is {money(c.monthly)} a month ({c.basedOn === 1 ? 'last month' : `the average of the last ${c.basedOn} finished months`}).
+          {c.checking > 0 ? ` Counting what is in checking too, about ${n(c.withChecking)} ${word(c.withChecking)}.` : ''}
+          {c.taxLeftOut ? ` "${c.taxLeftOut}" is left out, since it is set aside for taxes.` : ''}</p>
+      </div>
+    </section>
+  );
+}
+
 function OwnersCard() {
   const o = useOwners();
   if (!o.data || !o.marked) return null;
@@ -205,6 +227,8 @@ export default function Accounts() {
           </ResponsiveContainer>
         </div>
       </section>
+
+      <CushionCard />
 
       <OwnersCard />
 

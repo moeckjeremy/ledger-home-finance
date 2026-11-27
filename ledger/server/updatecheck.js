@@ -22,7 +22,7 @@ import { getSetting, setSetting } from './db.js';
 const VERSION = /^\d+(\.\d+){1,3}$/;
 const current = VERSION.test(process.env.LEDGER_RELEASE || '') ? process.env.LEDGER_RELEASE : '';
 const repo = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(process.env.LEDGER_REPO || '') ? process.env.LEDGER_REPO : '';
-const offered = !!current && !!repo && process.env.LEDGER_INGRESS !== '1' && !process.env.LEDGER_SETUP_CODE;
+const offered = !!current && !!repo && process.env.LEDGER_INGRESS !== '1' && !process.env.LEDGER_SETUP_CODE && process.env.LEDGER_DEMO !== '1';
 
 // A stand-in address for tests; ignored in the container, where only GitHub is ever asked.
 const base = process.env.NODE_ENV !== 'production' && process.env.LEDGER_UPDATE_URL

@@ -3,6 +3,7 @@
 // bank's on every matching payment, past and future, and the bank's wording is
 // kept as the note. An amount range lets one bank name become two bills (AT&T
 // for phones and AT&T for internet).
+import { movePayLink } from './recurring.js';
 import { db } from './db.js';
 
 db.exec(`CREATE TABLE IF NOT EXISTS bill_names (
@@ -72,6 +73,7 @@ export function installNames(app, { getRecurrings }) {
     if (req.body?.id && /^\d+$/.test(String(req.body.id))) {
       if (!name) return res.status(400).json({ error: 'Enter a name for the bill.' });
       db.prepare('UPDATE recurrings SET name = ? WHERE id = ?').run(name, Number(req.body.id));
+      movePayLink(current, name);
       return res.json({ ok: true });
     }
     if (name && db.prepare('SELECT 1 FROM bill_names WHERE name = ? AND name != ?').get(name, current)) return res.status(400).json({ error: `Another bill is already called ${name}.` });
@@ -84,6 +86,7 @@ export function installNames(app, { getRecurrings }) {
       range = { min: below ? Math.sqrt(below * amount) : null, max: Number.isFinite(above) ? Math.sqrt(above * amount) : null };
     }
     renameBill(current, name, range);
+    if (name) movePayLink(current, name);
     res.json({ ok: true });
   });
   app.get('/api/bills/names', (_req, res) => res.json(all().map((n) => ({ name: n.name, bank: n.bank }))));

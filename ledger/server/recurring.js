@@ -244,6 +244,30 @@ export function getRegularTransfers() {
   return detect('transfer');
 }
 
+// A pay link for a bill (2026-11-27, the owner: a way to get to the right website without hunting for it).
+// Ledger never pays anything: this is only the address of the company's own payment page, typed in by the
+// household, opened in a new tab. Kept by the bill's name (as shown), so it works for bills found in
+// transactions and bills added by hand alike. https only.
+db.exec('CREATE TABLE IF NOT EXISTS bill_links (name TEXT PRIMARY KEY, url TEXT NOT NULL)');
+const linkKey = (name) => String(name || '').trim().toLowerCase();
+export function cleanPayLink(text) {
+  let t = String(text || '').trim();
+  if (!t) return '';
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(t)) t = `https://${t}`;
+  let u; try { u = new URL(t); } catch { return null; }
+  if (u.protocol !== 'https:' || !u.hostname.includes('.') || u.username || u.password || t.length > 400) return null;
+  return u.href;
+}
+/** Carries a bill's pay link to its new name when the bill is renamed. */
+export function movePayLink(from, to) {
+  const a = linkKey(from), b = linkKey(to);
+  if (!a || !b || a === b) return;
+  const row = db.prepare('SELECT url FROM bill_links WHERE name = ?').get(a);
+  if (!row) return;
+  db.prepare('DELETE FROM bill_links WHERE name = ?').run(a);
+  db.prepare('INSERT OR REPLACE INTO bill_links (name, url) VALUES (?, ?)').run(b, row.url);
+}
+
 export function getRecurrings() {
   const today = iso(new Date());
   const manual = db.prepare('SELECT * FROM recurrings').all().map((r) => {
@@ -254,7 +278,8 @@ export function getRecurrings() {
   const ignores = db.prepare('SELECT merchant, amount FROM recurring_ignores').all();
   const names = new Set(manual.map((r) => r.name.toLowerCase()));
   const found = detect().filter((r) => !names.has(r.name.toLowerCase()) && !ignores.some((i) => i.merchant === r.merchant && close(r.amount, i.amount, 0.3)));
-  return [...manual, ...found];
+  const links = new Map(db.prepare('SELECT name, url FROM bill_links').all().map((l) => [l.name, l.url]));
+  return [...manual, ...found].map((r) => (links.has(linkKey(r.name)) ? { ...r, pay_url: links.get(linkKey(r.name)) } : r));
 }
 
 // "How often" from the form: '' for monthly or yearly, or 'week:2', 'month:3' with the next due date.
@@ -270,6 +295,15 @@ function rhythmOf(body, was) {
 }
 
 export function installRecurring(app) {
+  app.put('/api/bills/link', (req, res) => {
+    const name = linkKey(req.body?.name);
+    if (!name || name.length > 120) return res.status(400).json({ error: "That bill can't be given a link." });
+    const url = cleanPayLink(req.body?.url);
+    if (url === null) return res.status(400).json({ error: 'Enter the web address of the page where you pay it, starting with https://.' });
+    if (!url) db.prepare('DELETE FROM bill_links WHERE name = ?').run(name);
+    else db.prepare('INSERT OR REPLACE INTO bill_links (name, url) VALUES (?, ?)').run(name, url);
+    res.json({ ok: true, url });
+  });
   app.post('/api/recurrings', (req, res) => {
     const name = String(req.body?.name || '').trim().slice(0, 80);
     const amount = Number(req.body?.amount);

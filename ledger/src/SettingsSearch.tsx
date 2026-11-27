@@ -38,6 +38,7 @@ const PLACES: Place[] = [
   { id: 'alerts', title: 'Alerts', why: 'Emails when checking runs low, a bill is due or a budget tips over', words: 'alert alerts notification notifications notify warn warning low balance reminder reminders pay stub statement', go: fold('alerts') },
   { id: 'ha-sensors', title: 'Home Assistant sensors', why: 'Let automations react to bills, a low balance or budgets', words: 'home assistant sensor sensors automation automations ha', go: fold('ha-sensors') },
   { id: 'ai', title: 'AI recap and logos', why: 'Your Anthropic key, what AI costs, and what has been sent', words: 'ai claude anthropic key api cfo recap logo logos model cost privacy private receipts', go: fold('ai') },
+  { id: 'ai-names', title: 'Hide names from the AI', why: 'In AI recap and logos: your names, employers, accounts and banks are sent as plain labels', words: 'privacy private hide names anonymous scrub mask employer bank ai claude', go: fold('ai', 'ai-names') },
   { id: 'ai-private', title: 'Keep some categories away from Claude', why: 'In AI recap and logos: categories the AI never sees', words: 'privacy private hide secret ai claude categories', go: fold('ai', 'ai-private') },
   { id: 'vipkid', title: 'Class calendar', why: 'Reads your booked classes to work out pay', words: 'vipkid class classes calendar caldav booked', go: fold('vipkid') },
 ];

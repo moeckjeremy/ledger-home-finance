@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.1.35
+
+- Try a different plan, on the Debt page. Smallest balance first (the order the page follows) and
+  highest rate first are shown side by side, each with the month you'd be clear and the interest from
+  here. Two boxes try another monthly extra or a one-time amount. It changes nothing and doesn't say
+  which order is better.
+- Months of expenses covered, on the Accounts page: your savings divided by your usual monthly
+  spending (the average of the last three finished months). An account set aside for taxes is left out.
+- Hide names from the AI (Settings, "AI recap and logos"). Off until switched on. The recap and Ask
+  your CFO are then sent plain labels in place of the household's names, employers, side gigs, accounts
+  and banks, and the real names are put back in the answer. Amounts, dates, shops and bills still go.
+- Demo mode, for showing Ledger publicly with made-up figures: a copy started with `LEDGER_DEMO=1`
+  needs no sign-in, refuses anything that brings in real data, sets a password, sends email or calls
+  an AI, and wipes whatever visitors change within the hour. Ask your CFO there shows example
+  questions with answers written ahead of time, and says so. Does nothing unless that is set.
+- A live demo with made-up figures is linked from the project's page on GitHub.
+- Reading a receipt shows your CFO's owl reading it, then a sentence saying where you shopped, what
+  for, how much and on which account, above the details you can correct. Nothing is added until you
+  press Add, as before.
+- A pay link on a bill (Recurring page): save the address of the company's own payment page and
+  "Pay it" opens it in a new tab. Ledger never pays anything; it only saves you finding the page.
+
 ## 0.1.34
 
 - Security: the library Ledger sends email with (nodemailer) is updated from 7.0.13 to 10.6.1, which

@@ -1,3 +1,4 @@
+import { CfoOwl } from './Cfo';
 import { Hint } from '../GoLinks';
 import { GO, jump } from '../go';
 import { at } from '../base';
@@ -313,6 +314,59 @@ const shrink = shrinkPicture;
  * Several purchases at once: Claude reads a screenshot of the bank's list and
  * the rows come back here to check before anything is added.
  */
+/**
+ * While a picture is being read: the CFO's owl looking over a receipt (2026-11-27, the owner's idea on the
+ * way home from a shop). The owl's own reading motion is the only thing that moves; the receipt is a still
+ * drawing, in keeping with going easy on a phone.
+ */
+function OwlReading() {
+  return (
+    <div className="owl-reading" role="status">
+      <span className="owl-reading-art">
+        <CfoOwl size={84} thinking />
+        <svg className="owl-receipt" viewBox="0 0 40 56" width="40" height="56" aria-hidden="true">
+          <path d="M3 2h34v50l-5-3-6 3-6-3-6 3-6-3-5 3z" fill="#fff" stroke="#c9ccd6" strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M9 12h22M9 19h16M9 26h22M9 33h12M9 41h22" stroke="#9aa0ad" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      </span>
+      <span>Your CFO is reading your receipt<span className="cfo-dots"><i /><i /><i /></span></span>
+    </div>
+  );
+}
+
+/**
+ * What was just read, said in a sentence before the rows that can be corrected: where, how much, what for
+ * and which account. Nothing is added until the button below is pressed, and the sentence says so.
+ */
+function ReadSummary({ rows, cats, account }: { rows: any[]; cats: any[]; account: string }) {
+  const name = (id: any) => cats.find((c) => String(c.id) === String(id))?.name || 'Other';
+  const list = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+  const one = rows.length === 1 ? rows[0] : null;
+  let said: React.ReactNode;
+  if (one) {
+    const lines: any[] = one.lines || [];
+    const kinds = [...new Set(lines.map((x) => String(x.category_id)))];
+    const what = lines.length === 1 ? <>for <b>{lines[0].name}</b> ({name(lines[0].category_id)})</>
+      : kinds.length > 1 ? <>for {lines.length} items across <b>{list(kinds.map(name))}</b></>
+      : lines.length > 1 ? <>for {lines.length} items of <b>{name(kinds[0])}</b></>
+      : <>under <b>{name(one.category_id)}</b></>;
+    const money = cents(Math.abs(Number(one.amount) || 0));
+    said = one.direction === 'in'
+      ? <>You received <b>{money}</b> from <b>{one.merchant}</b>{account ? <>, into your <b>{account}</b></> : null}.</>
+      : <>You made a purchase at <b>{one.merchant}</b> {what} for <b>{money}</b>{one.date ? <> on {dayShort(one.date)}</> : null}{account ? <>, using your <b>{account}</b></> : null}.</>;
+  } else {
+    const fresh = rows.filter((r) => !r.already).length;
+    said = <>I found <b>{rows.length} transactions</b>{account ? <> for your <b>{account}</b></> : null}{fresh < rows.length ? <>; {rows.length - fresh} {rows.length - fresh === 1 ? 'is' : 'are'} already in Ledger and left unticked</> : null}.</>;
+  }
+  const known = one?.already;
+  return (
+    <div className="read-summary" data-go="read-summary">
+      <CfoOwl size={52} />
+      <p><b>{one ? 'Receipt read!' : 'All read!'}</b> {said} {known ? `${known === 'bank' ? 'Your bank has' : 'You have'} already recorded this one, so nothing new will be added.` : 'Nothing is added yet: change anything below that I got wrong, then add it.'}</p>
+    </div>
+  );
+}
+
 function ScanForm({ cats, accounts, onAdded, onClose }: { cats: any[]; accounts: any[]; onAdded: (added: number, failed: number) => void; onClose: () => void }) {
   const banks = accounts.filter((a) => a.type !== 'cash' && a.type !== 'insurance' && !a.manual);
   let last = '';
@@ -440,9 +494,10 @@ function ScanForm({ cats, accounts, onAdded, onClose }: { cats: any[]; accounts:
             )}
           </div>
           {!rows && !busy && <p className="sub">Or copy a picture and paste it here.</p>}
-          {busy && !rows && <p className="sub" role="status">Reading the picture. This takes a few seconds.</p>}
+          {busy && !rows && <OwlReading />}
         </>
       )}
+      {rows && <ReadSummary rows={rows} cats={cats} account={accounts.find((a) => String(a.id) === accountId)?.name || ''} />}
       {rows && (
         <div className="scan-rows">
           {rows.map((r) => (

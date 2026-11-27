@@ -494,6 +494,81 @@ function ImportFile({ sampleData, onDone }: { sampleData: boolean; onDone: () =>
   );
 }
 
+// GitHub's mark, drawn in the page's own ink so it reads in the light and dark looks alike (the shape is
+// GitHub's own "mark-github" icon from its open-source Octicons set).
+function GitHubMark() {
+  return (
+    <svg className="gh-mark" viewBox="0 0 16 16" width="24" height="24" fill="currentColor" aria-hidden="true">
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+    </svg>
+  );
+}
+
+// The public demo on Fly.io: how much it is used and roughly what the month will cost. Shown only on a copy
+// that names a demo app (the publisher's). The cost is worked out from list prices, not read from a bill.
+function DemoStats() {
+  const { data: d, reload } = useData<any>('/api/fly');
+  // Which count the bars show.
+  const [show, setShow] = useState<'visits' | 'requests'>('visits');
+  const [tok, setTok] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  if (!d?.offered) return null;
+  const send = async (path: string, method: string, body?: object) => {
+    setBusy(true); setErr('');
+    try { await api(path, { method, body }); setTok(''); forgetLoaded(); reload(); } catch (e: any) { setErr(e.message); }
+    setBusy(false);
+  };
+  const usd = (n: number) => `$${n.toFixed(2)}`;
+  const m = d.month;
+  const peak = Math.max(1, ...d.days.map((x: any) => x[show] || 0));
+  const share = Math.min(100, Math.round((m.projected / d.allowance) * 100));
+  return (
+    <div className="demo-stats" data-go="demo-stats">
+      <p className="sub first">The demo anyone can open, with made-up figures: <a href={d.address} target="_blank" rel="noreferrer">{d.address.replace('https://', '')}</a>. It sleeps when nobody is visiting and you pay only for the time it is awake.</p>
+      {!d.connected ? (
+        <>
+          <p className="sub">To see its traffic and likely cost here, paste a read-only Fly.io token. It can read figures and change nothing. It is kept on this copy, never shown again, and used only to ask Fly about this one app.</p>
+          <div className="token-form">
+            <label className="field"><span>Read-only Fly.io token</span><input type="password" autoComplete="off" value={tok} onChange={(e) => setTok(e.target.value)} placeholder="FlyV1 …" /></label>
+            <button className="primary" disabled={busy || tok.trim().length < 40} onClick={() => send('/api/fly/token', 'PUT', { token: tok })}>{busy ? 'Checking…' : 'Save'}</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="row"><span className="grow wrap">Likely cost this month<small>From {m.awakeHours} hours awake and {m.mbOut} MB sent so far{m.daysKnown < m.dayOfMonth ? `, over the ${m.daysKnown} day${m.daysKnown === 1 ? '' : 's'} Ledger has figures for` : ''}. Worked out from Fly's list prices, not read from your bill.</small></span><b>{usd(m.projected)}</b></div>
+          <div className="demo-meter"><i style={{ width: `${share}%` }} /></div>
+          <p className="sub">{m.projected < d.allowance ? `That is ${share}% of the ${usd(d.allowance)} a month the Free plan covers once a card is on the account, so nothing would be charged.` : `That is over the ${usd(d.allowance)} a month the Free plan covers. Going over moves the account to pay-as-you-go, which bills the whole month.`} Even awake every minute of the month, one machine this size comes to about {usd(d.alwaysOn)}.</p>
+          <div className="row"><span className="grow">So far this month</span><b>{usd(m.soFar)}</b></div>
+          <div className="row"><span className="grow wrap">Requests this month<small>Every page, picture and figure a visitor's browser asks for counts as one, so one visit is a few dozen.</small></span><b>{m.requests.toLocaleString()}</b></div>
+          <h3 className="setup-sub">The last 14 days</h3>
+          <div className="repo-tiles">
+            <div><b>{d.fortnight.visits.toLocaleString()}</b><small>visits</small></div>
+            <div><b>{d.fortnight.requests.toLocaleString()}</b><small>requests</small></div>
+            <div><b>{d.fortnight.awakeHours}</b><small>hours awake</small></div>
+            <div><b>{usd(m.projected)}</b><small>likely this month</small></div>
+          </div>
+          <div className="seg demo-pick" role="group" aria-label="What the bars show">
+            <button type="button" className={show === 'visits' ? 'on' : ''} onClick={() => setShow('visits')}>Visits</button>
+            <button type="button" className={show === 'requests' ? 'on' : ''} onClick={() => setShow('requests')}>Requests</button>
+          </div>
+          <div className="repo-bars" role="img" aria-label={`${show === 'visits' ? 'Visits' : 'Requests'} by day`}>
+            {d.days.map((x: any) => <span key={x.date} title={`${x.date}: ${x.visits} visits, ${x.requests} requests, ${Math.round(x.awakeMin)} minutes awake`}><em>{x[show] ? x[show].toLocaleString() : ''}</em><i style={{ height: `${Math.round((x[show] / peak) * 100)}%`, opacity: x[show] ? 1 : 0.25 }} /><small>{Number(x.date.slice(8))}</small></span>)}
+          </div>
+          <p className="sub">{show === 'visits'
+            ? 'A visit is the demo being opened from an address that has not opened it in the last half hour. The demo keeps the count itself, as a bare number with nothing about who. Counting began on November 27, 2026.'
+            : "A request is every page, picture and figure a visitor's browser asks for, so one visit is a few dozen. Fly counts these, and the figure runs a little low."} Each bar is that day against the busiest of the fourteen.</p>
+          {d.since?.first ? <p className="sub">Since Ledger began keeping count on {d.since.first}: {(d.since.visits || 0).toLocaleString()} visits and {(d.since.requests || 0).toLocaleString()} requests.</p> : null}
+          <p className="sub">Fly's own Billing page is the real figure: <a href="https://fly.io/dashboard/personal/billing" target="_blank" rel="noreferrer">open it</a>. {d.checkedAt ? `Last looked ${new Date(d.checkedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}.` : ''}</p>
+          {d.error && <p className="error">{d.error}</p>}
+          <div className="add-actions"><button disabled={busy} onClick={() => send('/api/fly/refresh', 'POST')}>{busy ? 'Looking…' : 'Look now'}</button><button className="link" disabled={busy} onClick={() => send('/api/fly/token', 'DELETE')}>Remove the token</button></div>
+        </>
+      )}
+      {err && <p className="error">{err}</p>}
+    </div>
+  );
+}
+
 // How the published project is doing on GitHub. Shown only on a copy that names a repository (the publisher's).
 function RepoStats() {
   const { data: r, reload } = useData<any>('/api/repo');
@@ -1297,6 +1372,7 @@ function AiRecap() {
 /** What each request to Claude carried, in plain words, and categories the household keeps away from it (server/ai.js). */
 function AiSent() {
   const { data, reload } = useData<any>('/api/ai/sent');
+  const { data: names, reload: reloadNames } = useData<any>('/api/ai/names');
   if (!data) return null;
   const hidden: number[] = data.private;
   const toggle = async (id: number) => {
@@ -1321,6 +1397,19 @@ function AiSent() {
           ))}
         </div>
       </Fold>
+      {names && (
+        <Fold plain id="ai-names" title="Hide names from the AI" note={names.on ? 'on' : 'off'}>
+          <p className="sub first">Switched on, the recap and Ask your CFO are sent plain labels in place of your household's names: the adults, employers, side gigs, accounts and banks. The answer has your own names put back before you read it, so nothing looks different to you. Amounts and dates still go, since the AI can't answer without them.</p>
+          <label className="hint-every" data-go="ai-names"><input type="checkbox" checked={names.on} onChange={async (e) => { await api('/api/ai/names', { method: 'PUT', body: { on: e.target.checked } }); forgetLoaded(); reloadNames(); }} /> Hide names in what the recap and the CFO are sent</label>
+          {names.swaps.length > 0 && (
+            <>
+              <p className="sub">{names.on ? 'What is being swapped:' : 'What would be swapped:'}</p>
+              {names.swaps.slice(0, 40).map((s: any) => <div key={s.label} className="row"><span className="grow wrap">{s.names.join(', ')}</span><small>{s.label}</small></div>)}
+            </>
+          )}
+          <p className="sub">Not covered: the names of shops and bills, categories and savings goals; a photo of a receipt, a statement or a pay stub, which is sent whole; and a name spelled differently from how it is saved in Ledger. It is a word swap, not a guarantee.</p>
+        </Fold>
+      )}
     </div>
   );
 }
@@ -1862,6 +1951,7 @@ export default function Connections({ onChanged }: { onChanged: () => void }) {
   const gig = useGig();
   const { data: family } = useData('/api/family');
   const { data: repoStats } = useData<any>('/api/repo');
+  const { data: flyStats } = useData<any>('/api/fly');
   const { data: update } = useData<any>('/api/update');
   const [token, setToken] = useState('');
   const [busy, setBusy] = useState('');
@@ -1941,7 +2031,7 @@ export default function Connections({ onChanged }: { onChanged: () => void }) {
             <small>There's no reset: if you forget it, the password has to be cleared on the computer that runs Ledger. Choose something you'll remember or save it in your password manager.</small>
           </>
         ) : (
-          <p className="sub first">No password is set yet. Open Ledger on the computer that runs it, or on a device on the same home network, to create one.</p>
+          <p className="sub first">{auth.demo ? 'Passwords are switched off in the demo, so nobody can lock it. On your own copy this is where you set one, add a sign-in for each person, and add Face ID or a fingerprint.' : 'No password is set yet. Open Ledger on the computer that runs it, or on a device on the same home network, to create one.'}</p>
         )}
       </section>
       {s.passwordSet && <Passkeys />}
@@ -2056,9 +2146,10 @@ export default function Connections({ onChanged }: { onChanged: () => void }) {
       {needsPassword ? null : <Fold id="paydays" title="Paydays" note="When each paycheck arrives and how much it is"><Paydays /></Fold>}
       {needsPassword ? null : <Fold id="gig" title="Side gig" note={gig.on ? `${gig.name}: income with no tax taken out` : 'Income with no tax taken out, such as tutoring or deliveries'}><SideGig /></Fold>}
 
-      {needsPassword || !(family?.configured || repoStats?.offered) ? null : <h3 className="group-title">Sharing</h3>}
+      {needsPassword || !(family?.configured || repoStats?.offered || flyStats?.offered) ? null : <h3 className="group-title">Sharing</h3>}
       {needsPassword || !family?.configured ? null : <Fold id="family" title="Family requests" note={family.open ? 'The request page is open' : 'Requests from family for their own copy'}><FamilyRequests /></Fold>}
-      {needsPassword || !repoStats?.offered ? null : <Fold id="repo" title="On GitHub" note={repoStats.facts ? `${repoStats.facts.stars} stars, ${(repoStats.issues || []).filter((i: any) => i.open).length} open reports${repoStats.traffic ? `, ${repoStats.traffic.clones} downloads in 14 days` : ''}` : 'How the published copy is doing'}><RepoStats /></Fold>}
+      {needsPassword || !repoStats?.offered ? null : <Fold id="repo" title={<span className="sf-title"><GitHubMark />On GitHub</span>} note={repoStats.facts ? `${repoStats.facts.stars} stars, ${(repoStats.issues || []).filter((i: any) => i.open).length} open reports${repoStats.traffic ? `, ${repoStats.traffic.clones} downloads in 14 days` : ''}` : 'How the published copy is doing'}><RepoStats /></Fold>}
+      {needsPassword || !flyStats?.offered ? null : <Fold id="demo-stats" title={<span className="sf-title"><img src={at('/logos/flyio.png')} alt="" />The public demo</span>} note={flyStats.connected ? `about $${flyStats.month.projected.toFixed(2)} this month, ${flyStats.month.requests.toLocaleString()} requests` : 'Its traffic and likely cost'}><DemoStats /></Fold>}
 
       {needsPassword ? null : <h3 className="group-title">Extras</h3>}
       {/* Not on a family copy: a phone's report can't pass the Cloudflare sign-in in front of its address. */}

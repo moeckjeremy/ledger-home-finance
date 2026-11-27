@@ -46,6 +46,10 @@ import { installOffBudget } from './offbudget.js';
 import { installOrganize } from './organize.js';
 import { applyDuePlans, forgetPlans, installBudgetPlan, plannedFor } from './budgetplan.js';
 import { installUpdateCheck } from './updatecheck.js';
+import { installCushion } from './cushion.js';
+import { demoMode, installDemo } from './demo.js';
+import { installDemoCfo } from './democfo.js';
+import { installHideNames } from './hidenames.js';
 import { installPrices } from './prices.js';
 import { installZero, zeroFor } from './zero.js';
 import { installAllowance } from './allowance.js';
@@ -82,6 +86,8 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json({ limit: '8mb' }));
+// A public demo's limits come before every route (server/demo.js). Does nothing on any other copy.
+installDemo(app);
 // The holiday backdrop is also used by Home Assistant (the kitchen display loads it from here as a
 // module), and a browser will only load a module from another address if that address says it may.
 // The file holds drawing code only, nothing private.
@@ -877,12 +883,12 @@ if (!db.prepare('PRAGMA table_info(accounts)').all().some((c) => c.name === 'min
 const studentLoan = (a) => a.type === 'loan' && /aidvantage|nelnet|mohela|edfinancial|great ?lakes|navient|fedloan|ecsi|dept\.? of ed|department of ed|student/i.test(`${a.institution} ${a.name}`);
 
 /** Pays debts in the given order: minimums on all, everything spare on the first unpaid. */
-function snowball(debts, extra) {
+function snowball(debts, extra, lump = 0) {
   const bal = debts.map((d) => d.balance);
   const paid = debts.map(() => null);
   let interest = 0;
   for (let m = 1; m <= 720 && paid.some((p) => p == null); m++) {
-    let pool = extra;
+    let pool = extra + (m === 1 ? lump : 0);   // a one-time amount goes in with the first month's payments
     debts.forEach((d, i) => {
       if (bal[i] <= 0) return void (pool += d.min_payment);
       const int = (bal[i] * d.apr) / 1200;
@@ -940,7 +946,7 @@ function paidThisMonth(d) {
 // minimums and the interest sums: its balance is this month's shopping, not a debt being paid down.
 if (!db.prepare('PRAGMA table_info(accounts)').all().some((c) => c.name === 'paid_full')) db.exec('ALTER TABLE accounts ADD COLUMN paid_full INTEGER NOT NULL DEFAULT 0');
 
-function debtPlan() {
+function debtPlan(tryOut = null) {
   const s = settings();
   const all = db.prepare(`SELECT * FROM accounts WHERE type IN (${DEBT_TYPES.map(() => '?').join(',')}) ORDER BY id`).all(...DEBT_TYPES)
     .map((a) => ({ ...a, balance: round(Math.max(0, -a.balance)) }));
@@ -960,15 +966,24 @@ function debtPlan() {
   const cardMinimums = round(all.filter((d) => ready(d) && d.type === 'credit').reduce((a, d) => a + d.min_payment, 0));
   const minsInBudget = s.mins_in_budget === '1';
   const excessAmount = round(income - budget - taxSetAside - (minsInBudget ? 0 : cardMinimums));
-  const extra = s.extra_payment !== '' ? num(s.extra_payment) : Math.max(0, excessAmount);
+  const usual = s.extra_payment !== '' ? num(s.extra_payment) : Math.max(0, excessAmount);
+  // `tryOut` is a what-if (the Debt page's "Try a different plan"): another extra amount, or a one-time sum.
+  const extra = tryOut && tryOut.extra != null ? tryOut.extra : usual;
+  const lump = tryOut?.lump || 0;
 
   // Dave Ramsey's debt snowball: smallest balance first, whatever the interest
   // rate. The mortgage waits until everything else is gone.
   // Each debt as it is really paid: its regular payment plus any standing extra.
   const paidAs = (d) => ({ ...d, min_payment: d.min_payment + (d.extra_monthly || 0) });
   const order = all.filter((d) => ready(d) && d.type !== 'mortgage' && !d.min_only).sort((a, b) => a.balance - b.balance).map(paidAs);
-  const plan = snowball(order, extra);
+  const plan = snowball(order, extra, lump);
   const noExtra = snowball(order, 0);
+  // The same debts and the same money, paid highest rate first (the "avalanche"), to set beside the plan.
+  // Shown as two sets of figures and nothing more: which order to follow is the household's choice.
+  const byRate = [...order].sort((a, b) => b.apr - a.apr || a.balance - b.balance);
+  const rate = snowball(byRate, extra, lump);
+  const sumUp = (list, r) => ({ months: r.paid.every((p) => p != null) ? Math.max(0, ...r.paid) : null, interest: r.interest, first: list[0]?.name || '', order: list.map((d) => d.name) });
+  const compare = { count: order.length, extra, lump, usual, same: order.every((d, i) => d.id === byRate[i].id), smallest: sumUp(order, plan), rate: sumUp(byRate, rate) };
   const done = plan.paid.every((p) => p != null) ? Math.max(0, ...plan.paid) : null;
   const freed = extra + order.reduce((a, d) => a + d.min_payment, 0);
 
@@ -1005,7 +1020,7 @@ function debtPlan() {
   });
 
   return {
-    debts, extra, usingExcess: s.extra_payment === '',
+    debts, extra, compare, usingExcess: s.extra_payment === '',
     excess: { income, budget, taxSetAside, minimums: cardMinimums, minsInBudget, amount: excessAmount },
     totals: {
       balance: round(all.reduce((a, d) => a + d.balance, 0)), minimums,
@@ -1018,6 +1033,14 @@ function debtPlan() {
 }
 // Registered before the plain route so '/api/debts/graph' is not taken for a debt's id.
 installDebtGraph(app, { debtPlan });
+// "Try a different plan": the payoff figures with another extra amount or a one-time sum. Reads only.
+app.get('/api/debts/try', (req, res) => {
+  const amount = (v) => { const n = Number(v); return Number.isFinite(n) && n >= 0 && n <= 10_000_000 ? Math.round(n * 100) / 100 : null; };
+  const extra = req.query.extra === undefined || req.query.extra === '' ? null : amount(req.query.extra);
+  const lump = req.query.lump === undefined || req.query.lump === '' ? 0 : amount(req.query.lump);
+  if ((req.query.extra !== undefined && req.query.extra !== '' && extra == null) || lump == null) return res.status(400).json({ error: 'Enter amounts of 0 or more.' });
+  res.json({ now: debtPlan().compare, tried: debtPlan({ extra, lump }).compare });
+});
 app.get('/api/debts', (_req, res) => res.json(debtPlan()));
 
 // Add a debt by hand (a mortgage, or a lender the bank feed doesn't cover).
@@ -1092,9 +1115,12 @@ app.delete('/api/accounts/:id', (req, res) => {
 
 installRecap(app, { summaryFor, debtPlan, taxEstimate });
 installAi(app);
+installHideNames(app);
+installCushion(app);
 installHaAi(app);
 installHoldings(app);
 installReconcile(app);
+installDemoCfo(app, { summaryFor, debtPlan });   // a public demo's example answers; nothing on any other copy
 installCfo(app, { summaryFor, debtPlan, taxEstimate, goals, investments });
 // Loan payments already saved take their loan's name (does nothing once they have it).
 nameLoanPayments();
@@ -1141,6 +1167,9 @@ installFamily(app);
 // Where the file is absent the page is told there is nothing to offer, and Settings shows no such section.
 try { (await import('./repostats.js')).installRepoStats(app); }
 catch (e) { if (e?.code !== 'ERR_MODULE_NOT_FOUND') throw e; app.get('/api/repo', (_req, res) => res.json({ offered: false })); }
+// The same for his look at the public demo's traffic and likely cost (server/flystats.js).
+try { (await import('./flystats.js')).installFlyStats(app); }
+catch (e) { if (e?.code !== 'ERR_MODULE_NOT_FOUND') throw e; app.get('/api/fly', (_req, res) => res.json({ offered: false })); }
 installFeedback(app);
 installLogos(app);
 installLogoFinder(app);
@@ -1169,12 +1198,12 @@ app.put('/api/clock', (req, res) => {
 // Whether anyone on the network could open this copy with no password. As a Home Assistant add-on nobody
 // can: Home Assistant signs people in, and any other address is refused until a Ledger password is set
 // (server/auth.js). So no password is asked for there before the bank connection and the rest of Settings.
-const openToNetwork = () => HOST !== '127.0.0.1' && process.env.LEDGER_INGRESS !== '1';
+const openToNetwork = () => HOST !== '127.0.0.1' && process.env.LEDGER_INGRESS !== '1' && !demoMode();   // a demo has no password by design
 // `locked`: something already stands between the network and this copy, a Ledger password or, on a family
 // copy, the web address's own sign-in (Cloudflare) with no Ledger password. Until 2026-11-24 only a password
 // counted, so a household signed in the second way was told to "set a password first" and could not reach
 // the token box or most of Settings (found when the owner's mom could not connect her bank).
-app.get('/api/simplefin', (_req, res) => res.json({ ...simplefin.status(), passwordSet: passwordSet(), locked: claimed(), networkOpen: openToNetwork() }));
+app.get('/api/simplefin', (_req, res) => res.json({ ...simplefin.status(), passwordSet: passwordSet(), locked: claimed(), networkOpen: openToNetwork(), demo: demoMode() || undefined }));
 
 app.post('/api/simplefin/connect', async (req, res) => {
   // Real bank data shouldn't sit on an app anyone on the Wi-Fi can open.

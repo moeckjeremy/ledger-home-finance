@@ -76,6 +76,10 @@ export default function Recurring() {
   const [editing, setEditing] = useState<any>(null);
   const [renaming, setRenaming] = useState<string | number | null>(null);
   const [newName, setNewName] = useState('');
+  // The bill whose pay link is being typed (the address of the company's own payment page).
+  const [linking, setLinking] = useState<string | number | null>(null);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkErr, setLinkErr] = useState('');
   const [renameErr, setRenameErr] = useState('');
   if (error) return <p className="error">{error}</p>;
   if (!s) return <Skeleton tiles={0} cards={2} rows={6} />;
@@ -98,6 +102,12 @@ export default function Recurring() {
       setRenaming(null); refresh();
     } catch (e: any) { setRenameErr(e.message); }
   };
+  const saveLink = async (r: any, url: string) => {
+    try { await api('/api/bills/link', { method: 'PUT', body: { name: r.name, url } }); setLinking(null); refresh(); }
+    catch (e: any) { setLinkErr(e.message); }
+  };
+  const openLink = (r: any) => { setLinking(r.id); setLinkUrl(r.pay_url || ''); setLinkErr(''); };
+  const site = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return 'its website'; } };
   const hide = async (r: any) => { await api('/api/recurrings/ignore', { method: 'POST', body: { merchant: r.merchant, amount: r.amount } }); refresh(); };
   const remove = async (r: any) => { const x = await api(`/api/recurrings/${r.id}`, { method: 'DELETE' }); refresh(); offerUndo(`${r.name} removed.`, x.undo); };
   const restore = async (id: number) => { await api(`/api/recurrings/ignore/${id}`, { method: 'DELETE' }); refresh(); };
@@ -165,6 +175,22 @@ export default function Recurring() {
                 {r.forecast?.length > 0 && (
                   <small>Then {r.forecast.map((f: any, i: number) => `${i ? ', ' : ''}${f.known ? '' : 'about '}${money(f.amount)} on ${dayShort(f.date)}`).join('')}</small>
                 )}
+                {linking === r.id ? (
+                  <form className="bill-rename bill-link" onSubmit={(e) => { e.preventDefault(); saveLink(r, linkUrl); }}>
+                    <input type="url" inputMode="url" autoFocus value={linkUrl} placeholder="https://… the page where you pay it" aria-label={`Where ${r.name} is paid`}
+                      onChange={(e) => setLinkUrl(e.target.value)} onKeyDown={(e) => e.key === 'Escape' && setLinking(null)} />
+                    <button type="submit" className="primary">Save</button>
+                    {r.pay_url && <button type="button" onClick={() => saveLink(r, '')}>Remove</button>}
+                    <button type="button" onClick={() => setLinking(null)}>Cancel</button>
+                  </form>
+                ) : (
+                  <small className="wide-only bill-pay" data-go="bill-pay">
+                    {r.pay_url ? <><a className="link" href={r.pay_url} target="_blank" rel="noopener noreferrer">Pay it at {site(r.pay_url)} ↗</a> · <button className="link" onClick={() => openLink(r)}>Change the link</button></>
+                      : <button className="link" onClick={() => openLink(r)}>Add a pay link</button>}
+                  </small>
+                )}
+                {linking === r.id && linkErr && <small className="bad" role="alert">{linkErr}</small>}
+                {linking === r.id && <small>Ledger doesn't pay anything. This only opens the company's own page in a new tab.</small>}
                 {r.previous && <small className={r.amount > r.previous ? 'bad' : 'good'}>{r.amount > r.previous ? 'Up' : 'Down'} from {cents(r.previous)} last time</small>}
               </span>
               <span style={{ textAlign: 'right' }}>
@@ -173,6 +199,8 @@ export default function Recurring() {
               </span>
               {/* On a phone the row's links are behind this one button. */}
               <More name={r.name} sub={`${cents(r.amount)} · ${r.category}`} items={() => [
+                r.pay_url && { label: 'Pay it', hint: `Opens ${site(r.pay_url)} in a new tab`, run: () => { window.open(r.pay_url, '_blank', 'noopener,noreferrer'); } },
+                { label: r.pay_url ? 'Change the pay link' : 'Add a pay link', hint: 'The page where you pay this bill', run: () => openLink(r) },
                 { label: 'Rename', hint: "Used everywhere this bill's payments appear", run: () => { setRenaming(r.id); setNewName(r.name); setRenameErr(''); } },
                 { label: 'Change the icon', run: () => dispatchEvent(new CustomEvent('ledger-logo-edit', { detail: { key: r.name, label: String(r.name).trim() } })) },
                 r.source === 'manual' && !r.seasonal && { label: 'Edit', hint: 'Amount, day or category', run: () => { setAdding(false); setEditing(r); scrollTo({ top: 0 }); } },

@@ -1,5 +1,6 @@
 // Password protection. Once a password is set, every API request needs a
 // signed-in session cookie. The password is stored only as a salted hash.
+import { demoMode, demoResetAt } from './demo.js';
 import { currency } from './money.js';
 import crypto from 'node:crypto';
 import os from 'node:os';
@@ -116,6 +117,7 @@ const privateAddress = (from) => {
   return a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127);
 };
 const isThisMac = (req) => {
+  if (demoMode()) return false;   // nobody is "at the computer" on a public demo: no first password can be set
   const from = String(req.socket.remoteAddress || '').replace(/^::ffff:/, '');
   if (from === '127.0.0.1' || from === '::1') return true;
   if (inContainer && privateAddress(from)) return true;
@@ -141,7 +143,7 @@ export function installAuth(app) {
     // On a family copy behind Cloudflare: who Cloudflare says this is, and whether that alone signs them in here.
     const offered = setupCode() !== '' && accessConfigured();
     const who = offered ? await accessIdentity(req) : null;
-    res.json({ ingress: viaIngress(req), invited: setupCode() !== '', passwordSet: passwordSet(), signedIn: awaitingSetupCode() ? false : !claimed() || signedIn(req),
+    res.json({ demo: demoMode() ? { resetAt: demoResetAt(), repo: /^[\w.-]+\/[\w.-]+$/.test(process.env.LEDGER_REPO || '') ? process.env.LEDGER_REPO : '' } : undefined, ingress: viaIngress(req), invited: setupCode() !== '', passwordSet: passwordSet(), signedIn: awaitingSetupCode() ? false : !claimed() || signedIn(req),
       access: offered ? { email: who?.email || null, login: accessLogin() } : null, needsSetupCode: awaitingSetupCode(), setupDone: getSetting('setup_done', '1') !== '0', thisMac: isThisMac(req), passkeyOrigins: passkeyOrigins(),
       // The look a device starts with before anyone chooses one in Settings: plain Onyx on a family copy
       // (The owner's choice, 2026-11-18), the holiday scenes on his own. Family copies are the ones with a setup code.
