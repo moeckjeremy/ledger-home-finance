@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.34
+
+- Security: the library Ledger sends email with (nodemailer) is updated from 7.0.13 to 10.6.1, which
+  closes a list of published advisories. Ledger only sends email to addresses the household typed in
+  Settings or on the Taxes page, so the risk was small, but there is no reason to stay on the old one.
+- Every address an email is sent to is now checked once more just before sending, and anything that is
+  not one plain address is refused.
+
 ## 0.1.33
 
 - Categories in your own order. On the Budgets page the arrows beside a category (or "⋯" on a phone)

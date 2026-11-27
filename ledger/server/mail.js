@@ -185,14 +185,25 @@ export const canSendMail = () => !!getSetting('mail_user') && !!getSetting('mail
 /** A short plain email, from the same address the summary goes out from. `to` blank sends it to that address itself. */
 /** A plain email with files attached (the tax pack). `files` is a list of { filename, content, contentType }. */
 /** `fromName` signs the email with a person's name instead of "Ledger" (a question to their tax preparer, which they should be able to reply to). */
+// Every recipient must be one plain address (2026-11-27). The routes check what people type, each with its
+// own pattern; this is the last look before the mail library, which will dig an address out of almost
+// any text it is handed. Anything else is refused, never tidied.
+function plain(to, user) {
+  const list = String(to || user || '').split(',').map((x) => x.trim()).filter(Boolean);
+  if (!list.length || list.some((x) => x.length > 200 || !ADDRESS.test(x))) throw new Error("That email address doesn't look right.");
+  return list.join(', ');
+}
+
 export async function sendWithFiles(to, subject, text, files, fromName = '') {
   const user = getSetting('mail_user');
+  to = plain(to, user);
   const name = String(fromName).replace(/[^\p{L}\p{M}' .-]/gu, '').trim();
   try { await transport().sendMail({ from: `${name || 'Ledger'} <${user}>`, replyTo: user, to: to || user, subject, text, attachments: files }); } catch (e) { throw new Error(readable(e)); }
 }
 
 export async function sendNote(to, subject, text, html) {
   const user = getSetting('mail_user');
+  to = plain(to, user);
   // Pictures a letter uses travel inside the email itself (by content id), so they show without the
   // mail program having to fetch anything.
   const attachments = html && html.includes('cid:google-g') ? [{ filename: 'google.png', path: GOOGLE_G, cid: 'google-g' }] : [];
