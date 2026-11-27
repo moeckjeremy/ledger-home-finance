@@ -83,6 +83,30 @@ export const monthLong = (m: string) => parse(m).toLocaleDateString('en-US', { m
 export const monthShort = (m: string) => parse(m).toLocaleDateString('en-US', { month: 'short' });
 export const dayShort = (d: string) => parse(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 export const dayLong = (d: string) => parse(d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+// The budget month (server/period.js): the calendar month unless the household moved its start day.
+// A month is still named "2026-11" and means the one that starts in November.
+let budgetDay = 1;
+export function setBudgetDay(d?: number) { budgetDay = d && d >= 1 && d <= 28 ? Math.round(d) : 1; }
+export const budgetStartDay = () => budgetDay;
+/** The budget month running today. */
+export const currentPeriod = () => {
+  const d = new Date(), m = new Date(d.getFullYear(), d.getMonth() - (d.getDate() >= budgetDay ? 0 : 1), 1);
+  return `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`;
+};
+const periodEnds = (m: string) => { const [y, mo] = m.split('-').map(Number); return [new Date(y, mo - 1, budgetDay), new Date(y, mo, budgetDay - 1)]; };
+const md = (d: Date, year = false) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(year ? { year: 'numeric' } : {}) });
+/** "November 2026", or "Nov 20 – Dec 19, 2026" when the budget month doesn't start on the 1st. */
+export const periodLong = (m: string) => {
+  if (budgetDay === 1) return monthLong(m);
+  const [a, b] = periodEnds(m);
+  return `${md(a, a.getFullYear() !== b.getFullYear())} – ${md(b, true)}`;
+};
+/** The short form for a phone's month menu: "Nov 2026", or "Nov 20 – Dec 19". */
+export const periodShort = (m: string) => {
+  if (budgetDay === 1) return `${monthShort(m)} ${m.slice(0, 4)}`;
+  const [a, b] = periodEnds(m);
+  return `${md(a)} – ${md(b)}`;
+};
 /** "Mar 2028" for a date that many months from now. */
 export const monthsFromNow = (n: number) => {
   const d = new Date();

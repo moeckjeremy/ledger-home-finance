@@ -1,5 +1,59 @@
 # Changelog
 
+## 0.1.36
+
+- Home Assistant now calls add-ons apps, and Ledger's pages and notes say so too. Nothing about
+  installing or updating has changed.
+- A budget month that starts on a day you choose. If your money works around payday on the 20th, say,
+  set that at the foot of the Budgets page ("When your budget month starts") or in Settings, "Budget
+  month". Budgets, what is spent and left, the pace line, carry-over, planning the next month, reports
+  by month, the recap, the summary email and budget alerts follow it; taxes, bill dates, the checking
+  forecast and net worth stay on real dates. It is the 1st unless you change it.
+- Your home, vehicles and other property in your net worth. On the Accounts page, "Add an account
+  by hand" has "A home, vehicle or other property": type what it is worth and update it when you like.
+  As you add it, and later under "How its value is kept", you choose between two ways. Type it in: a button opens Zillow in your
+  own browser, and nothing is sent anywhere. Or, for a home in the United States, look it up each
+  month: Ledger asks RentCast for an estimate once a month, using a free key you make there yourself.
+  That sends the home's address to RentCast and keeps it in your Ledger; it is off unless you set it
+  up, and typing a value yourself switches it off again.
+- A vehicle's value can lower itself each month. Type what the car is worth today and Ledger lowers
+  it a little each month so it isn't frozen until you next update it. It is an estimate, not a Kelley
+  Blue Book value; a button opens Kelley Blue Book for checking it, and typing a new figure restarts
+  the lowering from there. Nothing is sent anywhere.
+- The setup guide can add a vehicle whose value lowers itself: tick "It's a vehicle" beside its
+  name and value.
+- The rate a vehicle's value is lowered at is now worked out from its model year, its kind (car, SUV,
+  pickup, hybrid or electric) and, once there are odometer readings, its real mileage, using averages
+  from the Bureau of Labor Statistics and iSeeCars. A particular model can differ a lot from its kind,
+  so a rate of your own still works. It remains an estimate, not a Kelley Blue Book value.
+  You also say how well the model holds its value (well, about average, poorly), which matters more
+  than its kind.
+  The figures were fitted to used-vehicle values looked up by hand for about thirty popular models:
+  about 8% a year at one and two years old, 10% from three to six and 13.5% after, a quarter less
+  for a model that holds its value well and half more for one that does not.
+  "Where does this figure come from?" shows the sum for your vehicle, the studies behind it and how
+  to compare it with Kelley Blue Book.
+- A vehicle's model year and kind can be filled in from its VIN, if you choose. That sends the VIN,
+  and nothing else, to the U.S. vehicle safety agency's free decoder; Ledger does not keep it.
+- Mileage from the pump. After a fuel receipt is read, your CFO asks what the odometer says (it can
+  be skipped), and a vehicle's "How its value is kept" panel has a box for it too. Once two readings
+  are a couple of months apart, Ledger works out the miles a year and uses that for how fast the
+  vehicle's value is lowered, unless you set a rate of your own. Readings stay in your copy.
+- Where the money went, on the Reports page: one month as a single picture. Money in on the left,
+  each kind of spending and what was left over on the right, each band as thick as its amount.
+- A calendar view of bills on the Recurring page, with each bill on its day and paydays marked.
+  Choose a day to see what is due, or to add a bill on that day right there.
+- Feature of the week. On a computer, a small card under "Ask your CFO" in the side menu names one
+  thing you could use and haven't set up yet: only what applies to your household, a new one each
+  Monday. "Tell me more" opens a short description with "Show me" and "Ignore". Once opened it is put
+  away until the next Monday, and "Ignore" stops that suggestion for good. It isn't shown on a phone.
+  Settings, "Feature of the week" switches it off, and "Show me another feature of the week" there
+  points you at one straight away, on any device.
+- "Add an account by hand" is at the top of the account list on the Accounts page, not the foot.
+- The logo's fade at the end of its loop is one solid shape, in the app and on the project's page.
+- The setup guide's accounts step can add a home or vehicle, and the guided tour mentions the new
+  calendar, pay links, payoff comparison, property and the money-flow picture.
+
 ## 0.1.35
 
 - Try a different plan, on the Debt page. Smallest balance first (the order the page follows) and

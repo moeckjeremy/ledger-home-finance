@@ -9,12 +9,14 @@
 // later month is looked at or just before the budget is changed, so changing a budget today doesn't
 // rewrite what earlier months were allowed.
 import { db } from './db.js';
+import { periodOf, periodBounds } from './period.js';
 
 for (const col of ['rollover INTEGER NOT NULL DEFAULT 0', 'rollover_from TEXT']) { try { db.exec(`ALTER TABLE categories ADD COLUMN ${col}`); } catch { /* already there */ } }
 db.exec('CREATE TABLE IF NOT EXISTS budget_months (category_id INTEGER NOT NULL, month TEXT NOT NULL, budget REAL NOT NULL, PRIMARY KEY (category_id, month))');
 
 const round = (n) => Math.round(n * 100) / 100;
-const thisMonth = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+// The budget month now running, and a month's dates: the calendar's unless the start day was moved (server/period.js).
+const thisMonth = () => periodOf();
 const next = (m) => { const [y, mo] = m.split('-').map(Number); return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`; };
 /** Months from `from` up to, not including, `until` (at most ten years, so a bad value can't run away). */
 function monthsBetween(from, until) {
@@ -42,7 +44,7 @@ export function carryInto(month) {
   for (const c of db.prepare("SELECT id, budget, rollover_from FROM categories WHERE kind = 'expense' AND rollover = 1 AND rollover_from IS NOT NULL").all()) {
     if (!/^\d{4}-\d{2}$/.test(c.rollover_from)) continue;
     let carry = 0;
-    for (const m of monthsBetween(c.rollover_from, month)) carry += (kept.get(c.id, m)?.budget ?? c.budget) - spent.get(c.id, `${m}-01`, `${next(m)}-01`).s;
+    for (const m of monthsBetween(c.rollover_from, month)) carry += (kept.get(c.id, m)?.budget ?? c.budget) - spent.get(c.id, periodBounds(m).start, periodBounds(m).end).s;
     out[c.id] = round(carry);
   }
   return out;

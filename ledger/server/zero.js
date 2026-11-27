@@ -20,13 +20,14 @@
 // the category has to spend that month (carried in plus assigned). So the dashboard, meters, pace line,
 // recap, summary email and over-budget alert all follow without changes of their own.
 import { db, iso, getSetting, setSetting } from './db.js';
+import { periodOf, periodBounds } from './period.js';
 
 db.exec(`CREATE TABLE IF NOT EXISTS zero_assign (
   month TEXT NOT NULL, category_id INTEGER NOT NULL, amount REAL NOT NULL DEFAULT 0, PRIMARY KEY (month, category_id))`);
 
 const round = (n) => Math.round(n * 100) / 100;
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
-const thisMonth = () => iso(new Date()).slice(0, 7);
+const thisMonth = () => periodOf();   // the budget month now running (server/period.js)
 const next = (m) => { const [y, mo] = m.split('-').map(Number); return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`; };
 const prev = (m) => { const [y, mo] = m.split('-').map(Number); return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, '0')}`; };
 
@@ -40,7 +41,7 @@ const startAmount = () => Number(getSetting('zero_start', '0')) || 0;
  */
 export function zeroFor(month) {
   if (!zeroOn() || !MONTH.test(month) || month < from()) return null;
-  const first = `${from()}-01`, mStart = `${month}-01`, mEnd = `${next(month)}-01`;
+  const first = periodBounds(from()).start, { start: mStart, end: mEnd } = periodBounds(month);
   const cats = db.prepare("SELECT id, name, icon, budget FROM categories WHERE kind = 'expense' ORDER BY sort").all();
   const spentBy = (a, b) => Object.fromEntries(db.prepare(`SELECT t.category_id id, -SUM(t.amount) s FROM transactions t JOIN categories c ON c.id = t.category_id
     WHERE c.kind = 'expense' AND t.date >= ? AND t.date < ? GROUP BY t.category_id`).all(a, b).map((r) => [r.id, r.s]));

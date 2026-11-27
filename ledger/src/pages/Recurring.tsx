@@ -2,14 +2,17 @@ import { GO, jump } from '../go';
 import { useState } from 'react';
 import { api, cents, dayShort, daysUntil, money, useData } from '../lib';
 import { CategoryPicker, Logo, LogoPicker, More, Skeleton, offerUndo } from '../ui';
+import { BillCalendar } from './BillCalendar';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 // Adds a bill, or with `bill` changes one you added by hand.
-function AddBill({ cats, onDone, onClose, bill }: { cats: any[]; onDone: () => void; onClose: () => void; bill?: any }) {
+// `on` is a day chosen on the calendar (YYYY-MM-DD): the form starts on that day of the month, with that
+// date as the next due date should a rhythm of its own be picked, and sits inside the calendar's card.
+function AddBill({ cats, onDone, onClose, bill, on }: { cats: any[]; onDone: () => void; onClose: () => void; bill?: any; on?: string }) {
   const [f, setF] = useState(bill
     ? { name: String(bill.name), amount: Number(bill.amount).toFixed(2), day: String(bill.day), how: bill.every_unit ? `${bill.every_unit}:${bill.every_n || 1}` : bill.month ? `y:${bill.month}` : '', anchor: bill.every_unit ? String(bill.next || bill.anchor || '') : '', category_id: String(bill.category_id) }
-    : { name: '', amount: '', day: '', how: '', anchor: '', category_id: String(cats.find((c) => c.fixed)?.id ?? cats[0]?.id ?? '') });
+    : { name: '', amount: '', day: on ? String(Number(on.slice(8))) : '', how: '', anchor: on || '', category_id: String(cats.find((c) => c.fixed)?.id ?? cats[0]?.id ?? '') });
   // Its own rhythm (every so many weeks or months) is counted from a date; monthly and yearly bills go by the day of the month.
   const rhythm = /^(week|month):/.test(f.how);
   const [err, setErr] = useState('');
@@ -29,8 +32,9 @@ function AddBill({ cats, onDone, onClose, bill }: { cats: any[]; onDone: () => v
     }
   };
   return (
-    <form className="card" onSubmit={submit} noValidate>
-      <div className="card-head"><h2>{bill ? `Change ${bill.name}` : 'Add a bill'}</h2></div>
+    <form className={on ? 'bill-cal-add add-form' : 'card'} onSubmit={submit} noValidate>
+      <div className="card-head"><h2>{bill ? `Change ${bill.name}` : on ? `Add a bill due on the ${Number(on.slice(8))}${['th', 'st', 'nd', 'rd'][(Number(on.slice(8)) % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][Number(on.slice(8)) % 100] || 'th'}` : 'Add a bill'}</h2></div>
+      {on && <p className="sub first">It starts as a bill that comes every month on that day. Change "How often" if it comes less or more often.</p>}
       <div className="add-grid">
         <label>Name<input type="text" value={f.name} onChange={set('name')} placeholder="Water bill" autoFocus /></label>
         <label>Amount<input type="number" min="0" step="0.01" inputMode="decimal" value={f.amount} onChange={set('amount')} placeholder="45.00" /></label>
@@ -76,6 +80,9 @@ export default function Recurring() {
   const [editing, setEditing] = useState<any>(null);
   const [renaming, setRenaming] = useState<string | number | null>(null);
   const [newName, setNewName] = useState('');
+  // The bills as a list, or laid out on a month's calendar. Remembered on this device.
+  const [view, setView] = useState<'list' | 'calendar'>(() => { try { return localStorage.getItem('ledger-bills-view') === 'calendar' ? 'calendar' : 'list'; } catch { return 'list'; } });
+  const choose = (v: 'list' | 'calendar') => { setView(v); try { localStorage.setItem('ledger-bills-view', v); } catch { /* private window */ } };
   // The bill whose pay link is being typed (the address of the company's own payment page).
   const [linking, setLinking] = useState<string | number | null>(null);
   const [linkUrl, setLinkUrl] = useState('');
@@ -137,6 +144,16 @@ export default function Recurring() {
               <p className="sub">Putting <b>{money(yearlyTotal / 12)} a month</b> aside covers all {yearlyOnes.length} of them without a scramble when each comes round. The next is {yearlyNext.name}, {cents(yearlyNext.amount)}, due {dayShort(yearlyNext.next)}. A savings goal on the <a href="#accounts" onClick={jump(GO.goals)}>Accounts</a> page is a good place to keep it.</p>
             </>
           )}
+        </section>
+      )}
+
+      <div className="seg demo-pick bills-view" role="group" aria-label="How to show your bills" data-go="bills-view">
+        <button type="button" className={view === 'list' ? 'on' : ''} onClick={() => choose('list')}>List</button>
+        <button type="button" className={view === 'calendar' ? 'on' : ''} onClick={() => choose('calendar')}>Calendar</button>
+      </div>
+      {view === 'calendar' && (
+        <section className="card">
+          <BillCalendar addForm={cats ? (date, close, done) => <AddBill key={date} on={date} cats={cats.filter((c) => c.kind === 'expense')} onClose={close} onDone={() => { done(); refresh(); }} /> : undefined} />
         </section>
       )}
 

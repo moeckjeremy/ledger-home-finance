@@ -9,6 +9,7 @@
 //   PATCH /api/accounts/:id/owner     { owner }
 //   ?who=you|spouse|joint             on /api/transactions and /api/reports (see ownerWhere)
 import { db, iso, getSetting } from './db.js';
+import { periodOf, periodBounds } from './period.js';
 
 if (!db.prepare('PRAGMA table_info(accounts)').all().some((c) => c.name === 'owner')) db.exec("ALTER TABLE accounts ADD COLUMN owner TEXT NOT NULL DEFAULT ''");
 
@@ -29,15 +30,17 @@ function names() {
 export function installOwners(app) {
   app.get('/api/owners', (_req, res) => {
     const n = names();
-    const start = `${iso(new Date()).slice(0, 7)}-01`;
+    const start = periodBounds(periodOf()).start;   // the budget month now running (server/period.js)
     const groups = {};
     for (const who of OWNERS) {
       if (who === 'spouse' && !n.two) continue;
-      const acc = db.prepare(`SELECT balance FROM accounts WHERE type != 'insurance' AND ${OWNER_OF} = ?`).all(who);
+      const acc = db.prepare(`SELECT id, name, type, balance FROM accounts WHERE type != 'insurance' AND ${OWNER_OF} = ? ORDER BY (balance < 0), ABS(balance) DESC, name`).all(who);
       const spent = db.prepare(`SELECT COALESCE(-SUM(t.amount), 0) s FROM transactions t JOIN categories c ON c.id = t.category_id
         WHERE c.kind = 'expense' AND t.date >= ? AND t.account_id IN (SELECT id FROM accounts WHERE ${OWNER_OF} = ?)`).get(start, who).s;
       groups[who] = {
         accounts: acc.length,
+        // Which accounts those are, largest first and what is owed after what is held, for the card to list.
+        list: acc.map((a) => ({ id: a.id, name: a.name, type: a.type, balance: round(a.balance) })),
         has: round(acc.filter((a) => a.balance > 0).reduce((a, x) => a + x.balance, 0)),
         owes: round(-acc.filter((a) => a.balance < 0).reduce((a, x) => a + x.balance, 0)),
         spent: round(spent),

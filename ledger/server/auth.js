@@ -1,7 +1,8 @@
 // Password protection. Once a password is set, every API request needs a
 // signed-in session cookie. The password is stored only as a salted hash.
-import { demoMode, demoResetAt } from './demo.js';
+import { demoBuild, demoMode, demoResetAt } from './demo.js';
 import { currency } from './money.js';
+import { startDay } from './period.js';
 import crypto from 'node:crypto';
 import os from 'node:os';
 import fs from 'node:fs';
@@ -143,7 +144,7 @@ export function installAuth(app) {
     // On a family copy behind Cloudflare: who Cloudflare says this is, and whether that alone signs them in here.
     const offered = setupCode() !== '' && accessConfigured();
     const who = offered ? await accessIdentity(req) : null;
-    res.json({ demo: demoMode() ? { resetAt: demoResetAt(), repo: /^[\w.-]+\/[\w.-]+$/.test(process.env.LEDGER_REPO || '') ? process.env.LEDGER_REPO : '' } : undefined, ingress: viaIngress(req), invited: setupCode() !== '', passwordSet: passwordSet(), signedIn: awaitingSetupCode() ? false : !claimed() || signedIn(req),
+    res.json({ demo: demoMode() ? { ...demoBuild(), resetAt: demoResetAt(), repo: /^[\w.-]+\/[\w.-]+$/.test(process.env.LEDGER_REPO || '') ? process.env.LEDGER_REPO : '' } : undefined, ingress: viaIngress(req), invited: setupCode() !== '', passwordSet: passwordSet(), signedIn: awaitingSetupCode() ? false : !claimed() || signedIn(req),
       access: offered ? { email: who?.email || null, login: accessLogin() } : null, needsSetupCode: awaitingSetupCode(), setupDone: getSetting('setup_done', '1') !== '0', thisMac: isThisMac(req), passkeyOrigins: passkeyOrigins(),
       // The look a device starts with before anyone chooses one in Settings: plain Onyx on a family copy
       // (The owner's choice, 2026-11-18), the holiday scenes on his own. Family copies are the ones with a setup code.
@@ -151,6 +152,7 @@ export function installAuth(app) {
       // "Ledger should be starting with standard background"). A copy starts on the scenes only where its
       // setting `start_look` says 'auto', which is set on the owner's own copy and nowhere else.
       currency: currency(),
+      budgetDay: startDay(),   // the day a budget month starts (server/period.js); 1 unless changed
       look: !process.env.LEDGER_SETUP_CODE && getSetting('start_look') === 'auto' ? 'auto' : 'none',
       // A family copy's sign-in screen offers "Forgot your password?" (a reset code from whoever runs the copies).
       canReset: setupCode() !== '' && claimed(),

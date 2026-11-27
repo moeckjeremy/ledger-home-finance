@@ -1,7 +1,8 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { compact, money, monthLong, monthShort, useData, useOwners } from '../lib';
+import { compact, money, periodLong, monthShort, useData, useOwners } from '../lib';
 import { useState } from 'react';
 import { Logo, Skeleton, reducedMotion } from '../ui';
+import { FlowCard } from './Flow';
 
 const OTHER = { id: 0, name: 'Everything else', color: 'var(--ink3)', icon: '📦' };
 
@@ -45,10 +46,12 @@ export default function Reports() {
       )}
       <section className="tiles">
         <div className="tile"><div className="label">Average month</div><div className="value">{money(avg)}</div><div className="sub">last {full.length} full months</div></div>
-        <div className="tile"><div className="label">Highest month</div><div className="value">{money(high?.total ?? 0)}</div><div className="sub">{high ? monthLong(high.month) : ''}</div></div>
-        <div className="tile"><div className="label">Lowest month</div><div className="value">{money(low?.total ?? 0)}</div><div className="sub">{low ? monthLong(low.month) : ''}</div></div>
+        <div className="tile"><div className="label">Highest month</div><div className="value">{money(high?.total ?? 0)}</div><div className="sub">{high ? periodLong(high.month) : ''}</div></div>
+        <div className="tile"><div className="label">Lowest month</div><div className="value">{money(low?.total ?? 0)}</div><div className="sub">{low ? periodLong(low.month) : ''}</div></div>
         <div className="tile"><div className="label">Past 12 months</div><div className="value">{money(months.reduce((a, m) => a + m.total, 0))}</div><div className="sub">total spending</div></div>
       </section>
+
+      <FlowCard months={months.map((m) => m.month)} who={who} />
 
       <section className="card">
         <div className="card-head">
@@ -68,7 +71,7 @@ export default function Reports() {
                 content={({ active, payload, label }: any) =>
                   active && payload?.length ? (
                     <div className="tip">
-                      <div className="tip-title">{monthLong(label)} · {money(payload[0].payload.total)}</div>
+                      <div className="tip-title">{periodLong(label)} · {money(payload[0].payload.total)}</div>
                       {[...payload].reverse().map((p: any) => (
                         <div key={p.dataKey} className="tip-row"><span><i style={{ background: p.color }} />{p.name}</span><b>{money(p.value)}</b></div>
                       ))}

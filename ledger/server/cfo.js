@@ -16,6 +16,7 @@ import { settleBudgets } from './rollover.js';
 import { howLedgerWorks } from './howto.js';
 import { hideNames, mask, unmask, unmaskInput } from './hidenames.js';
 import { db, getSetting, iso } from './db.js';
+import { periodSql, periodNote } from './period.js';
 import { apiKey, model, buildFacts, readableError } from './recap.js';
 import { noteUsage, aiSource, limitMessage, notPrivate, privateCats } from './ai.js';
 import { viaHa, haAsk, aiName, haIsClaude } from './haai.js';
@@ -231,7 +232,7 @@ function searchTransactions(a) {
 
 function spendingBreakdown(a) {
   if (!DATE.test(a.from || '') || !DATE.test(a.to || '')) return { error: 'from and to must be dates like 2026-11-01.' };
-  const key = a.by === 'merchant' ? 't.merchant' : a.by === 'month' ? 'substr(t.date, 1, 7)' : 'c.name';
+  const key = a.by === 'merchant' ? 't.merchant' : a.by === 'month' ? periodSql('t.date') : 'c.name';
   const args = [a.from, a.to];
   let extra = '';
   if (a.category) { extra = ' AND lower(c.name) = ?'; args.push(String(a.category).toLowerCase()); }
@@ -416,7 +417,7 @@ async function ask(convo, question, deps) {
       const send = () => client.messages.create({
         model: model(),
         max_tokens: 8000,
-        system: `${SYSTEM}\n\n${howLedgerWorks()}${web ? LOOKUP_SYSTEM : ''}${privateCats().length ? PRIVATE_NOTE : ''}${currencyNote() ? '\n\n' + currencyNote() : ''}${hideNames() ? HIDDEN_NOTE : ''}\n\nToday is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} (${iso(new Date())}).`,
+        system: `${SYSTEM}\n\n${howLedgerWorks()}${web ? LOOKUP_SYSTEM : ''}${privateCats().length ? PRIVATE_NOTE : ''}${currencyNote() ? '\n\n' + currencyNote() : ''}${periodNote()}${hideNames() ? HIDDEN_NOTE : ''}\n\nToday is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} (${iso(new Date())}).`,
         tools: web ? [...TOOLS, ...WEB_TOOLS] : TOOLS,
         messages,
       });
@@ -494,7 +495,7 @@ async function askPlain(convo, question, deps) {
   const earlier = convo.plain.slice(-4).map((t) => `They asked: ${t.q}\nYou answered: ${t.a}`).join('\n\n');
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const text = await haAsk('a question about the household\'s money',
-    `${PLAIN_SYSTEM}\n\n${howLedgerWorks()}${privateCats().length ? PRIVATE_NOTE : ''}\n\nToday is ${today}.\n\n${hideNames() ? HIDDEN_NOTE : ''}\n\nThe household's figures:\n${mask(capped(facts, 45000))}${earlier ? `\n\nEarlier in this conversation:\n${mask(earlier)}` : ''}\n\nTheir question: ${mask(question)}`,
+    `${PLAIN_SYSTEM}\n\n${howLedgerWorks()}${privateCats().length ? PRIVATE_NOTE : ''}${periodNote()}\n\nToday is ${today}.\n\n${hideNames() ? HIDDEN_NOTE : ''}\n\nThe household's figures:\n${mask(capped(facts, 45000))}${earlier ? `\n\nEarlier in this conversation:\n${mask(earlier)}` : ''}\n\nTheir question: ${mask(question)}`,
     'cfo', "your question, with this month's totals, your accounts, bills, debts and savings goals");
   const shown = unmask(text);
   convo.plain.push({ q: question, a: shown });

@@ -179,7 +179,9 @@ async function suggestBudgets() {
   return { basis, takeHome: pay, months: months.length, byAi, note, budgets: out, total: out.reduce((a, c) => a + c.suggested, 0) };
 }
 
-const HAND_TYPES = ['checking', 'savings', 'credit', 'investment', 'hsa'];
+// 'property' (2026-11-27): a home, a vehicle or anything else owned, kept as a value typed by hand so net
+// worth counts what a mortgage or car loan paid for. Nothing is ever bought or paid "on" it.
+const HAND_TYPES = ['checking', 'savings', 'credit', 'investment', 'hsa', 'property'];
 
 export function installSetup(app) {
   // Where things stand, so the screens can show what's already been done.
@@ -187,7 +189,7 @@ export function installSetup(app) {
     res.json({
       done: getSetting('setup_done', '1') !== '0',
       bankConnected: connected(),
-      accounts: db.prepare("SELECT id, name, type, balance, manual FROM accounts WHERE type NOT IN ('cash') ORDER BY id").all(),
+      accounts: db.prepare("SELECT id, name, type, balance, manual, dep_rate FROM accounts WHERE type NOT IN ('cash') ORDER BY id").all(),
       paydays: db.prepare('SELECT COUNT(*) n FROM pay_schedules').get().n,
       budgets: db.prepare("SELECT id, name, icon, budget, fixed FROM categories WHERE kind = 'expense' AND hidden = 0 ORDER BY sort").all(),
     });
@@ -200,11 +202,17 @@ export function installSetup(app) {
     const balance = Number(req.body?.balance);
     if (!name) return res.status(400).json({ error: 'Give the account a name, such as Checking.' });
     if (!HAND_TYPES.includes(type)) return res.status(400).json({ error: 'Choose what kind of account it is.' });
-    if (!Number.isFinite(balance) || balance < 0) return res.status(400).json({ error: type === 'credit' ? 'Enter what you owe on it today, or 0.' : "Enter what's in it today, or 0." });
+    if (!Number.isFinite(balance) || balance < 0) return res.status(400).json({ error: type === 'credit' ? 'Enter what you owe on it today, or 0.' : type === 'property' ? "Enter what it's worth today." : "Enter what's in it today, or 0." });
     // What's owed on a card is kept as a negative balance, like every other debt.
     const signed = type === 'credit' ? -balance : balance;
     const id = Number(db.prepare("INSERT INTO accounts (name, institution, type, balance, manual) VALUES (?, 'Added by you', ?, ?, 1)").run(name, type, signed).lastInsertRowid);
     setStart(id, signed);   // from here its balance follows what is entered on it
+    // Something owned was owned yesterday too: carry its value back through the net worth history, so the
+    // chart doesn't show the household becoming richer overnight (the same is done for a debt added by hand).
+    if (type === 'property') {
+      const ins = db.prepare('INSERT OR IGNORE INTO balance_history (account_id, date, balance) VALUES (?,?,?)');
+      for (const { date } of db.prepare('SELECT DISTINCT date FROM balance_history').all()) ins.run(id, date, signed);
+    }
     res.json({ id });
   });
 

@@ -5,27 +5,31 @@
     .ell, .ink { fill: none; stroke: #f2f2f5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; }
     .ell { stroke-width: 11; }
     .ink { stroke-width: 4.6; }
-    @keyframes s1 { 0%, 3.12% { transform: scaleY(0); opacity: 0; } 7.38%, 90% { transform: scaleY(1); opacity: 1; } 97%, 100% { transform: scaleY(1); opacity: 0; } }
+    @keyframes s1 { 0%, 3.12% { transform: scaleY(0); opacity: 0; } 7.38%, 90% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1); opacity: 1; } }
     .s1 { animation: s1 8s ease-out infinite; }
-    @keyframes s2 { 0%, 6.38% { transform: scaleY(0); opacity: 0; } 10.88%, 90% { transform: scaleY(1); opacity: 1; } 97%, 100% { transform: scaleY(1); opacity: 0; } }
+    @keyframes s2 { 0%, 6.38% { transform: scaleY(0); opacity: 0; } 10.88%, 90% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1); opacity: 1; } }
     .s2 { animation: s2 8s ease-out infinite; }
-    @keyframes s3 { 0%, 9.88% { stroke-dashoffset: 1; opacity: 0; } 10.18% { opacity: 1; } 14.88%, 90% { stroke-dashoffset: 0; opacity: 1; } 97%, 100% { stroke-dashoffset: 0; opacity: 0; } }
+    @keyframes s3 { 0%, 9.88% { stroke-dashoffset: 1; opacity: 0; } 10.18% { opacity: 1; } 14.88%, 90% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
     .s3 { animation: s3 8s ease-out infinite; }
-    @keyframes s4 { 0%, 14.62% { stroke-dashoffset: 1; opacity: 0; } 15.66% { opacity: 1; } 31.87%, 90% { stroke-dashoffset: 0; opacity: 1; } 97%, 100% { stroke-dashoffset: 0; opacity: 0; } }
+    @keyframes s4 { 0%, 14.62% { stroke-dashoffset: 1; opacity: 0; } 15.66% { opacity: 1; } 31.87%, 90% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
     .s4 { animation: s4 8s linear infinite; }
-    @keyframes s5 { 0%, 15.38% { stroke-dashoffset: 1; opacity: 0; } 15.60% { opacity: 1; } 19.12%, 90% { stroke-dashoffset: 0; opacity: 1; } 97%, 100% { stroke-dashoffset: 0; opacity: 0; } }
+    @keyframes s5 { 0%, 15.38% { stroke-dashoffset: 1; opacity: 0; } 15.60% { opacity: 1; } 19.12%, 90% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
     .s5 { animation: s5 8s ease-out infinite; }
-    @keyframes s6 { 0%, 18.62% { stroke-dashoffset: 1; opacity: 0; } 18.88% { opacity: 1; } 22.88%, 90% { stroke-dashoffset: 0; opacity: 1; } 97%, 100% { stroke-dashoffset: 0; opacity: 0; } }
+    @keyframes s6 { 0%, 18.62% { stroke-dashoffset: 1; opacity: 0; } 18.88% { opacity: 1; } 22.88%, 90% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
     .s6 { animation: s6 8s ease-out infinite; }
-    @keyframes s7 { 0%, 22.12% { stroke-dashoffset: 1; opacity: 0; } 22.39% { opacity: 1; } 26.62%, 90% { stroke-dashoffset: 0; opacity: 1; } 97%, 100% { stroke-dashoffset: 0; opacity: 0; } }
+    @keyframes s7 { 0%, 22.12% { stroke-dashoffset: 1; opacity: 0; } 22.39% { opacity: 1; } 26.62%, 90% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
     .s7 { animation: s7 8s ease-out infinite; }
-    @keyframes s8 { 0%, 25.87% { stroke-dashoffset: 1; opacity: 0; } 26.10% { opacity: 1; } 29.62%, 90% { stroke-dashoffset: 0; opacity: 1; } 97%, 100% { stroke-dashoffset: 0; opacity: 0; } }
+    @keyframes s8 { 0%, 25.87% { stroke-dashoffset: 1; opacity: 0; } 26.10% { opacity: 1; } 29.62%, 90% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
     .s8 { animation: s8 8s ease-out infinite; }
-    @keyframes s9 { 0%, 28.88% { stroke-dashoffset: 1; opacity: 0; } 29.07% { opacity: 1; } 32.12%, 90% { stroke-dashoffset: 0; opacity: 1; } 97%, 100% { stroke-dashoffset: 0; opacity: 0; } }
+    @keyframes s9 { 0%, 28.88% { stroke-dashoffset: 1; opacity: 0; } 29.07% { opacity: 1; } 32.12%, 90% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
     .s9 { animation: s9 8s ease-out infinite; }
-    @media (prefers-reduced-motion: reduce) { .bar, .ell, .ink { animation: none; } }
+    /* The whole mark fades as one picture, so the places where strokes cross never show through. */
+    @keyframes mark { 0%, 2% { opacity: 0; } 3%, 90% { opacity: 1; } 97%, 100% { opacity: 0; } }
+    .mark { animation: mark 8s linear infinite; }
+    @media (prefers-reduced-motion: reduce) { .bar, .ell, .ink, .mark { animation: none; } }
   </style>
   <rect x="-28" y="-18" width="272" height="136" rx="22" fill="#0e0f13"/>
+  <g class="mark">
   <rect class="bar s1" x="10" y="52" width="11" height="26" rx="5.5"/>
   <rect class="bar s2" x="29" y="36" width="11" height="42" rx="5.5"/>
   <path class="ell s3" pathLength="1" d="M53.5 72.5V14"/>
@@ -35,4 +39,5 @@
   <path class="ink s7" pathLength="1" d="M143 52a10 10 0 1 0-20 0a10 10 0 1 0 20 0M143 42V80A10 10 0 0 1 125 88"/>
   <path class="ink s8" pathLength="1" d="M152 52H172A10 10 0 1 0 169.1 59.1"/>
   <path class="ink s9" pathLength="1" d="M181 42V62M181 52A10 10 0 0 1 197.5 44.5"/>
+  </g>
 </svg>

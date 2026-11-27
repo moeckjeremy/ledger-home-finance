@@ -8,6 +8,7 @@ import { cents as moneyCents, whole } from './money.js';
 import { gig } from './gig.js';
 import nodemailer from 'nodemailer';
 import { db, getSetting, setSetting } from './db.js';
+import { periodOf } from './period.js';
 import { outlook } from './cashflow.js';
 import { stubReminderText } from './paystub.js';
 import { statementReminderText } from './statementremind.js';
@@ -65,7 +66,7 @@ export function weeklyFigures({ summaryFor }) {
   const movers = cats.filter((c) => Math.abs(c.change) >= 10 && (c.spent > 0 || c.usual > 0)).sort((a, b) => Math.abs(b.change) - Math.abs(a.change)).slice(0, 3);
 
   // Budgets that are over, or nearly used up, this month.
-  const s = summaryFor(today.slice(0, 7));
+  const s = summaryFor(periodOf(today));   // the budget month now running (server/period.js)
   const daysLeft = s.days - s.lastDay;
   const watch = s.categories
     .filter((c) => c.budget > 0 && c.spent >= c.budget * 0.85)

@@ -5,14 +5,14 @@ a debt payoff plan and a running estimate of federal and state income tax.
 
 ## Starting
 
-1. Install the add-on and start it. It arrives ready-made, so this takes about a minute.
+1. Install the app and start it. It arrives ready-made, so this takes about a minute.
    Ledger runs on 64-bit machines only (a Raspberry Pi 4 or 5 or another 64-bit ARM board, or an ordinary
    64-bit PC). On a 32-bit system, such as an older Pi, Home Assistant does not list it in the store.
 2. Open **Ledger** from the sidebar. A short setup guide asks about your household, accounts and paydays.
    You can skip it and come back to it from Settings.
 
 Home Assistant signs you in, so Ledger asks for no password of its own in the sidebar. **Every Home
-Assistant administrator can open Ledger; other users can't.** Home Assistant shows add-ons to
+Assistant administrator can open Ledger; other users can't.** Home Assistant shows apps (it used to call them add-ons) to
 administrators only, and hiding the panel from someone's sidebar is a preference they can undo, not a
 lock. If someone you would not show your finances to is an administrator, make them a regular user first,
 or don't install Ledger there.
@@ -39,7 +39,7 @@ Ledger works without any AI. If you want the extras, Settings, "AI recap and log
   suggest changes. You pay Anthropic for what you use.
 
 Either way Ledger sends only what each job needs, Settings lists what has been sent, and you can keep
-chosen categories away from the AI. The add-on asks for permission to call Home Assistant for three things only, and
+chosen categories away from the AI. The app asks for permission to call Home Assistant for three things only, and
 only if you choose them: that AI Task, reading one of your Home Assistant calendars for a side gig paid
 by booked sessions (Settings, "Side gig"), and the optional sensors below. It lists your AI Tasks and
 calendars, asks the AI Task, reads the calendar you picked, and writes its own sensors if you switch them
@@ -82,18 +82,18 @@ actions:
 
 ## If it ever stops
 
-On the add-on's Info tab, switch on **Watchdog**. Home Assistant then starts Ledger again by itself if it
+On the app's Info tab, switch on **Watchdog**. Home Assistant then starts Ledger again by itself if it
 stops answering. It is off until you switch it on.
 
 ## Using it outside the sidebar
 
 To add Ledger to a phone's home screen or post purchases to it from a Shortcut, give it a port under
-the add-on's **Network** settings. Set a Ledger password first (Settings, Password): without one,
+the app's **Network** settings. Set a Ledger password first (Settings, Password): without one,
 Ledger refuses everything that doesn't come through Home Assistant.
 
 ## Your data
 
-One SQLite file in the add-on's `/data` folder. Removing the add-on removes it.
+One SQLite file in the app's `/data` folder. Removing the app removes it.
 
 ### Backing it up
 

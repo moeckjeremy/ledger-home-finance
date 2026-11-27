@@ -1,6 +1,6 @@
 import { CatIcon } from '../icons';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { cents, compact, dayShort, money, monthLong, monthShort, useData } from '../lib';
+import { cents, compact, dayShort, money, monthLong, periodLong, monthShort, useData } from '../lib';
 import { Logo, TxAmount, reducedMotion } from '../ui';
 
 // The detail behind each dashboard tile, opened by clicking the tile.
@@ -10,6 +10,7 @@ export type InsightView = (typeof INSIGHTS)[number];
 const GROUPS = [
   { title: 'Cash', types: ['checking', 'savings'] },
   { title: 'Investments', types: ['investment'] },
+  { title: 'Home and property', types: ['property'] },
   { title: 'Health savings', types: ['hsa'] },
   { title: 'Credit cards', types: ['credit'] },
   { title: 'Loans', types: ['auto', 'loan', 'mortgage'] },
@@ -71,7 +72,7 @@ function Spent({ d }: { d: any }) {
   return (
     <>
       <section className="card">
-        <div className="label">{d.isCurrent ? 'Spent so far this month' : `Spent in ${monthLong(d.month)}`}</div>
+        <div className="label">{d.isCurrent ? 'Spent so far this month' : `Spent in ${periodLong(d.month)}`}</div>
         <div className="hero">{money(d.spent)}</div>
         <div className="sub">
           {Math.round((d.spent / (d.budget || 1)) * 100)}% of the {money(d.budget)} budget ·{' '}
@@ -131,7 +132,7 @@ function Income({ d }: { d: any }) {
   return (
     <>
       <section className="card">
-        <div className="label">{d.isCurrent ? 'Income so far this month' : `Income in ${monthLong(d.month)}`}</div>
+        <div className="label">{d.isCurrent ? 'Income so far this month' : `Income in ${periodLong(d.month)}`}</div>
         <div className="hero">{money(d.income)}</div>
         <div className="sub">
           <span className={diff >= 0 ? 'good' : 'bad'}>{money(Math.abs(diff))} {diff >= 0 ? 'more' : 'less'}</span> than {d.isCurrent ? `by this point in ${prevName}` : prevName} ({money(d.incomeLast)})
@@ -174,7 +175,7 @@ function Saved({ d }: { d: any }) {
   return (
     <>
       <section className="card">
-        <div className="label">{saved >= 0 ? 'Saved' : 'Overspent'} {d.isCurrent ? 'so far this month' : `in ${monthLong(d.month)}`}</div>
+        <div className="label">{saved >= 0 ? 'Saved' : 'Overspent'} {d.isCurrent ? 'so far this month' : `in ${periodLong(d.month)}`}</div>
         <div className={`hero ${saved >= 0 ? '' : 'bad'}`}>{money(Math.abs(saved))}</div>
         <div className="sub">{d.income > 0 ? `${Math.abs(Math.round((saved / d.income) * 100))}% of income ${saved >= 0 ? 'kept' : 'spent beyond what came in'}` : 'No income yet this month'}</div>
         {d.isCurrent && <p className="fine">This is income received so far less spending so far, so it swings with the calendar: it looks worse just before a payday and better just after one.</p>}
@@ -199,7 +200,7 @@ function Saved({ d }: { d: any }) {
                 content={({ active, payload }: any) =>
                   active && payload?.length ? (
                     <div className="tip">
-                      <div className="tip-title">{monthLong(payload[0].payload.month)}</div>
+                      <div className="tip-title">{periodLong(payload[0].payload.month)}</div>
                       <div className="tip-row"><span>{payload[0].value >= 0 ? 'Saved' : 'Overspent'}</span><b>{money(Math.abs(payload[0].value))}</b></div>
                     </div>
                   ) : null

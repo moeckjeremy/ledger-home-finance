@@ -173,7 +173,42 @@ function OtherReview({ cats, onChanged }: { cats: any[]; onChanged: () => void }
   const [note, setNote] = useState('');
   const [remember, setRemember] = useState(true);
   const [hidden, setHidden] = useState(() => { try { return Number(localStorage.getItem('ledger-other-hide') || 0) > Date.now(); } catch { return false; } });
-  if (!data || data.purchases < 5 || (hidden && !rows)) return null;
+  // Looking at them and filing them by hand, shop by shop, with no AI involved.
+  const [shops, setShops] = useState<any[] | null>(null);
+  const [openShop, setOpenShop] = useState('');
+  const [chosen, setChosen] = useState<Record<string, string>>({});
+  // While the list is open the card stays, even once fewer than five are left, so the last tick can be seen.
+  if (!data || ((data.purchases < 5 || hidden) && !rows && !shops)) return null;
+  const expense = cats.filter((c) => c.kind === 'expense' || c.kind === 'aside');
+  // Shops with a category chosen and not yet saved; with two or more, "Save all" saves them together.
+  const ready = (shops || []).filter((x) => !x.filed && chosen[x.merchant]);
+  const saveAll = async () => {
+    setErr('');
+    try {
+      const r = await api('/api/categories/suggest/apply', { method: 'POST', body: { items: ready.map((x) => ({ merchant: x.merchant, category_id: Number(chosen[x.merchant]) })), remember } });
+      const names = new Map(ready.map((x) => [x.merchant, expense.find((c) => String(c.id) === String(chosen[x.merchant]))?.name || 'its new category']));
+      setShops((shops || []).map((x) => (names.has(x.merchant) ? { ...x, filed: `${x.count} purchase${x.count === 1 ? '' : 's'} moved to ${names.get(x.merchant)}${r.rules ? ', and put there from now on' : ''}` } : x)));
+      reload(); onChanged(); dispatchEvent(new CustomEvent('ledger-refresh'));
+    } catch (e: any) { setErr(e.message); }
+  };
+  const allButton = ready.length > 1 ? <div className="add-actions other-all"><button className="primary" onClick={saveAll}>Save all {ready.length}</button><small>{ready.length} shops have a category chosen and aren't saved yet.</small></div> : null;
+  const hideFor = (days: number) => { try { localStorage.setItem('ledger-other-hide', String(Date.now() + days * 86400000)); } catch { /* private window */ } setHidden(true); setShops(null); };
+  const show = async () => {
+    if (shops) return setShops(null);
+    setErr('');
+    try { setShops((await api('/api/categories/other')).shops); } catch (e: any) { setErr(e.message); }
+  };
+  const fileShop = async (m: string) => {
+    if (!chosen[m]) return;
+    setErr('');
+    try {
+      const r = await api('/api/categories/suggest/apply', { method: 'POST', body: { items: [{ merchant: m, category_id: Number(chosen[m]) }], remember } });
+      // The shop stays in the list with a tick, so it is plain that it was saved and where it went.
+      const name = expense.find((c) => String(c.id) === String(chosen[m]))?.name || 'its new category';
+      setShops((shops || []).map((x) => (x.merchant === m ? { ...x, filed: `${r.moved} purchase${r.moved === 1 ? '' : 's'} moved to ${name}${r.rules ? ', and put there from now on' : ''}` } : x)));
+      reload(); onChanged(); dispatchEvent(new CustomEvent('ledger-refresh'));
+    } catch (e: any) { setErr(e.message); }
+  };
   const ask = async () => {
     setErr(''); setNote(''); setBusy('Asking Claude…');
     try {
@@ -187,7 +222,7 @@ function OtherReview({ cats, onChanged }: { cats: any[]; onChanged: () => void }
   const set = (m: string, change: any) => setRows((rows || []).map((r) => (r.merchant === m ? { ...r, ...change } : r)));
   const picked = (rows || []).filter((r) => r.on);
   const file = async () => {
-    setErr(''); setBusy('Filing…');
+    setErr(''); setBusy('Saving…');
     try {
       const r = await api('/api/categories/suggest/apply', { method: 'POST', body: { items: picked.map((p) => ({ merchant: p.merchant, category_id: Number(p.category_id) })), remember } });
       setRows(null); setNote(`${r.moved} purchase${r.moved === 1 ? '' : 's'} filed${r.rules ? `, and Ledger will file those shops the same way from now on` : ''}.`);
@@ -195,26 +230,47 @@ function OtherReview({ cats, onChanged }: { cats: any[]; onChanged: () => void }
     } catch (e: any) { setErr(e.message); }
     setBusy('');
   };
-  const expense = cats.filter((c) => c.kind === 'expense' || c.kind === 'aside');
   return (
     <section className="card deposit-review other-review">
       <div className="row">
-        <span className="grow wrap"><b>{data.purchases} purchases from {data.merchants} shops are filed under "Other"</b>
+        <span className="grow wrap"><b>{data.purchases} purchase{data.purchases === 1 ? '' : 's'} from {data.merchants} shop{data.merchants === 1 ? '' : 's'} {data.purchases === 1 ? 'is' : 'are'} filed under "Other"</b>
           <small>{cents(data.total)} in all. Claude can suggest a category for each from the shop's name (only the names are sent). You check them before anything moves.</small></span>
         {!rows && data.canAsk && <button disabled={!!busy} onClick={ask}>{busy || 'Suggest categories'}</button>}
-        {!rows && <button className="link" onClick={() => { try { localStorage.setItem('ledger-other-hide', String(Date.now() + 30 * 86400000)); } catch { /* private window */ } setHidden(true); }}>Hide for a month</button>}
+        {!rows && <button data-go="other-show" onClick={show}>{shops ? 'Close the list' : 'Show them'}</button>}
+        {!rows && <button className="link" onClick={() => hideFor(30)}>Hide for a month</button>}
+        {!rows && <button className="link" title="On this device. Nothing changes: they simply stay in Other." onClick={() => hideFor(36500)}>Hide for good</button>}
       </div>
+      {shops && !rows && <>
+        <p className="sub">Shop by shop, largest first. Tap a shop to see its purchases. Choose a category to move all of that shop's purchases out of Other, or leave any you like where they are: Other is a fine place for them. Choosing a category doesn't save by itself: press the <b>Save</b> button that appears beside it (or <b>Save all</b> once you've chosen several), and the shop turns into a green tick saying where it went.</p>
+        {shops.length === 0 && <p className="sub">Nothing is left in Other.</p>}
+        {allButton}
+        {shops.map((sh) => sh.filed ? (
+          <div key={sh.merchant} className="row other-filed" role="status"><span className="grow wrap"><b>✓ {sh.merchant}</b><small>Saved: {sh.filed}.</small></span></div>
+        ) : (
+          <div key={sh.merchant} className="other-shop">
+            <div className="row">
+              <button type="button" className="grow wrap other-shop-name" aria-expanded={openShop === sh.merchant} onClick={() => setOpenShop(openShop === sh.merchant ? '' : sh.merchant)}><span>{sh.merchant} {openShop === sh.merchant ? '▴' : '▾'}<small>{sh.count} purchase{sh.count === 1 ? '' : 's'} · {cents(sh.total)} · last {dayShort(sh.last)}</small></span></button>
+              <span className="review-answers"><CategoryPicker cats={expense} value={chosen[sh.merchant] || ''} blank="Choose a category…" onChange={(id) => setChosen({ ...chosen, [sh.merchant]: String(id) })} label={`Category for ${sh.merchant}`} />
+                {chosen[sh.merchant] && <button className="primary" onClick={() => fileShop(sh.merchant)}>Save</button>}</span>
+            </div>
+            {chosen[sh.merchant] && <small className="other-unsaved">Not saved yet: press Save to move {sh.count === 1 ? 'this purchase' : `these ${sh.count} purchases`}.</small>}
+            {openShop === sh.merchant && <div className="other-shop-list">{sh.purchases.map((p: any) => <div key={p.id} className="row"><span className="grow">{dayShort(p.date)}<small>{p.account}</small></span><span className="num">{cents(p.amount)}</span></div>)}{sh.count > sh.purchases.length && <small>and {sh.count - sh.purchases.length} older</small>}</div>}
+          </div>
+        ))}
+        {allButton}
+        {shops.length > 0 && <label className="other-pick"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> <span>Put these shops in the same category from now on</span></label>}
+      </>}
       {!data.canAsk && <p className="sub"><Hint text={data.why} /></p>}
       {rows && rows.length > 0 && <>
         {rows.map((r) => (
           <div key={r.merchant} className="row">
             <label className="grow wrap other-pick"><input type="checkbox" checked={r.on} onChange={(e) => set(r.merchant, { on: e.target.checked })} /> <span>{r.merchant}<small>{r.count} purchase{r.count === 1 ? '' : 's'} · {cents(r.total)} · last {dayShort(r.last)}</small></span></label>
-            <span className="review-answers"><CategoryPicker cats={expense} value={r.category_id} onChange={(id) => set(r.merchant, { category_id: id })} label={`Category for ${r.merchant}`} allowNew={false} /></span>
+            <span className="review-answers"><CategoryPicker cats={expense} value={r.category_id} onChange={(id) => set(r.merchant, { category_id: id })} label={`Category for ${r.merchant}`} /></span>
           </div>
         ))}
-        <label className="hint-every"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> File these shops the same way from now on</label>
+        <label className="hint-every"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Put these shops in the same category from now on</label>
         <div className="add-actions">
-          <button className="primary" disabled={!!busy || !picked.length} onClick={file}>{busy || `File ${picked.length} shop${picked.length === 1 ? '' : 's'}`}</button>
+          <button className="primary" disabled={!!busy || !picked.length} onClick={file}>{busy || `Save ${picked.length} shop${picked.length === 1 ? '' : 's'}`}</button>
           <button disabled={!!busy} onClick={() => setRows(null)}>Cancel</button>
         </div>
       </>}
@@ -367,6 +423,50 @@ function ReadSummary({ rows, cats, account }: { rows: any[]; cats: any[]; accoun
   );
 }
 
+// Shop names and wording that mean fuel, for a receipt whose items weren't filed under the gas category.
+const FUEL = /fuel|gasoline|unleaded|diesel|\bgas\b|shell|exxon|mobil|chevron|texaco|\bbp\b|valero|circle ?k|murphy|kum ?& ?go|casey|love'?s|speedway|marathon|phillips|conoco|sunoco|citgo|quiktrip|racetrac|sheetz|wawa|kwik|\barco\b|sinclair|costco gas|sam'?s fuel/i;
+
+/**
+ * After a fuel receipt is read: your CFO asks for the odometer reading (2026-11-27, the owner's idea: filling up
+ * is when someone is standing by the car with Ledger open). The reading is kept with the vehicle and, once
+ * there are two a couple of months apart, tells Ledger how much the vehicle is really driven, which is what
+ * sets how fast its value is lowered. Entirely optional: "Not now" puts it away and the purchase is added as usual.
+ */
+function FuelAsk({ row, cats }: { row: any; cats: any[] }) {
+  const { data: cars } = useData<any[]>('/api/vehicles');
+  const [car, setCar] = useState('');
+  const [miles, setMiles] = useState('');
+  const [said, setSaid] = useState('');
+  const [err, setErr] = useState('');
+  const [gone, setGone] = useState(false);
+  const gasIds = new Set(cats.filter((c) => /^gas\b/i.test(c.key || c.name)).map((c) => String(c.id)));
+  const fuel = row.direction !== 'in' && (FUEL.test(row.merchant || '') || gasIds.has(String(row.category_id)) || (row.lines || []).some((l: any) => gasIds.has(String(l.category_id)) || FUEL.test(l.name || '')));
+  if (!fuel || gone || !cars?.length) return null;
+  const chosen = cars.find((c) => String(c.id) === car) || cars[0];
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault(); setErr('');
+    try { const r = await api(`/api/vehicles/${chosen.id}/odometer`, { method: 'POST', body: { miles, date: row.date } }); setSaid(r.said); }
+    catch (e: any) { setErr(e.message); }
+  };
+  return (
+    <div className="read-summary fuel-ask" data-go="fuel-ask">
+      <CfoOwl size={44} />
+      {said ? <p>{said}</p> : (
+        <form onSubmit={save} noValidate>
+          <p><b>A fill-up?</b> If you're by the car, tell me what the odometer says and I'll keep the mileage {cars.length === 1 ? <>for <b>{chosen.name}</b></> : 'for it'} up to date. {chosen.lowering ? "It helps Ledger judge how much it's driven, which sets how fast its value is lowered." : "It's then at hand when you check its value on Kelley Blue Book."}{chosen.last ? ` Last time: ${Number(chosen.last.miles).toLocaleString()} miles on ${dayShort(chosen.last.date)}.` : ''}</p>
+          <div className="fuel-ask-fields">
+            {cars.length > 1 && <select value={String(chosen.id)} onChange={(e) => setCar(e.target.value)} aria-label="Which vehicle">{cars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
+            <input type="text" inputMode="numeric" value={miles} placeholder="Odometer, in miles" aria-label="Odometer reading in miles" onChange={(e) => { setMiles(e.target.value.replace(/[^0-9,]/g, '')); setErr(''); }} />
+            <button type="submit" className="primary" disabled={!miles}>Save mileage</button>
+            <button type="button" className="link" onClick={() => setGone(true)}>Not now</button>
+          </div>
+          {err && <small className="error" role="alert">{err}</small>}
+        </form>
+      )}
+    </div>
+  );
+}
+
 function ScanForm({ cats, accounts, onAdded, onClose }: { cats: any[]; accounts: any[]; onAdded: (added: number, failed: number) => void; onClose: () => void }) {
   const banks = accounts.filter((a) => a.type !== 'cash' && a.type !== 'insurance' && !a.manual);
   let last = '';
@@ -498,6 +598,7 @@ function ScanForm({ cats, accounts, onAdded, onClose }: { cats: any[]; accounts:
         </>
       )}
       {rows && <ReadSummary rows={rows} cats={cats} account={accounts.find((a) => String(a.id) === accountId)?.name || ''} />}
+      {rows && rows.length === 1 && <FuelAsk key={rows[0].merchant + rows[0].date} row={rows[0]} cats={cats} />}
       {rows && (
         <div className="scan-rows">
           {rows.map((r) => (

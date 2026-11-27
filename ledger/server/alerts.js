@@ -9,6 +9,7 @@
 // Summary email. Settings: alerts_on, alert_low (dollars, 100 unless changed).
 import { cents } from './money.js';
 import { db, iso, getSetting, setSetting } from './db.js';
+import { periodOf, periodBounds } from './period.js';
 import { outlook } from './cashflow.js';
 import { carryInto } from './rollover.js';
 import { canSendMail, sendNote } from './mail.js';
@@ -34,12 +35,12 @@ export function findAlerts(now = new Date()) {
       if ((e.kind === 'bill' || e.kind === 'card') && e.date === tomorrow && !e.onCard && !e.alreadyOut) out.push({ key: `due:${e.name}:${e.date}`, subject: `${e.name} is due tomorrow`, text: `${e.name} comes out of checking tomorrow: about ${money(Math.abs(e.amount))}.` });
     }
   }
-  const month = today.slice(0, 7);
+  const month = periodOf(today), bounds = periodBounds(month);   // the budget month now running (server/period.js)
   // Against what the month really has to spend: a category that carries over counts what it brought with it.
   const carried = carryInto(month);
   const over = db.prepare(`SELECT c.id, c.name, c.budget, COALESCE(-SUM(t.amount), 0) spent FROM categories c
-    LEFT JOIN transactions t ON t.category_id = c.id AND t.date >= ? AND t.date < date(?, '+1 month')
-    WHERE c.kind = 'expense' AND c.budget > 0 GROUP BY c.id`).all(`${month}-01`, `${month}-01`)
+    LEFT JOIN transactions t ON t.category_id = c.id AND t.date >= ? AND t.date < ?
+    WHERE c.kind = 'expense' AND c.budget > 0 GROUP BY c.id`).all(bounds.start, bounds.end)
     .map((c) => ({ ...c, budget: c.id in carried ? Math.max(0, Math.round((c.budget + carried[c.id]) * 100) / 100) : c.budget })).filter((c) => c.spent > c.budget);
   for (const c of over) out.push({ key: `over:${c.id}:${month}`, subject: `${c.name} is over budget`, text: `${c.name} is over its budget this month: ${money(c.spent)} of ${money(c.budget)}.` });
   return out;

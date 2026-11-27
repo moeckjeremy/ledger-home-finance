@@ -13,6 +13,8 @@ import { ZeroGuide } from './ZeroGuide';
 
 const STEPS = ['Welcome', 'Your household', 'Your accounts', 'Paydays', 'Side income', 'Taxes', 'Budgets', 'All set'] as const;
 const KIND: Record<string, string> = { checking: 'Checking', savings: 'Savings', credit: 'Credit card' };
+// Shown in the list of what has been added; a home or vehicle is added in its own part of the step.
+const KIND_SHOWN: Record<string, string> = { ...KIND, property: 'Home or other property', investment: 'Investment or retirement', hsa: 'Health savings' };
 
 /** Step 1: how the household files, children, and what each adult does for work. */
 function Household() {
@@ -87,6 +89,21 @@ function Accounts() {
   const { data: st, reload } = useData('/api/setup');
   const [token, setToken] = useState('');
   const [f, setF] = useState({ name: '', type: 'checking', balance: '' });
+  // A home, vehicle or other property, added at a typed value so net worth counts it.
+  const [own, setOwn] = useState({ name: '', balance: '', car: false, year: '', kind: 'car' });
+  const [ownErr, setOwnErr] = useState('');
+  const addOwn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const worth = own.balance === '' ? 0 : Number(own.balance);
+    if (own.car && !(worth > 0)) return setOwnErr("Type what the vehicle is worth today, so Ledger has a figure to lower.");
+    if (own.car && !/^(19[89]|20)\d\d$/.test(own.year)) return setOwnErr('Enter the vehicle\u2019s model year, such as 2021.');
+    try {
+      const made = await api('/api/setup/account', { method: 'POST', body: { name: own.name, type: 'property', balance: worth } });
+      // A vehicle starts on the average rate; "How its value is kept" on the Accounts page changes or stops it.
+      if (own.car && made?.id) await api(`/api/accounts/${made.id}/depreciate`, { method: 'PUT', body: { on: true, use: 'auto', year: Number(own.year), kind: own.kind } });
+      setOwn({ name: '', balance: '', car: false, year: '', kind: 'car' }); setOwnErr(''); forgetLoaded(); reload();
+    } catch (e: any) { setOwnErr(e.message); }
+  };
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
   if (!st) return null;
@@ -106,7 +123,7 @@ function Accounts() {
       <p className="sub first">Ledger needs to know where your money is. You can connect your banks so it keeps up by itself, keep accounts by hand, or do both.</p>
       {st.accounts.length > 0 && (
         <div>
-          {st.accounts.map((a: any) => <div key={a.id} className="row"><span className="grow">{a.name}<small>{KIND[a.type] || a.type}{a.manual ? ', kept by hand' : ', from your bank'}</small></span><span className="num">{cents(a.balance)}</span></div>)}
+          {st.accounts.map((a: any) => <div key={a.id} className="row"><span className="grow">{a.name}<small>{KIND_SHOWN[a.type] || a.type}{a.type === 'property' ? (a.dep_rate > 0 ? ', lowered a little each month from the value you typed' : ', at a value you typed') : a.manual ? ', kept by hand' : ', from your bank'}</small></span><span className="num">{cents(a.balance)}</span></div>)}
         </div>
       )}
       <h3 className="setup-sub">Connect your banks{st.bankConnected && <span className="good"> · Connected</span>}</h3>
@@ -134,6 +151,18 @@ function Accounts() {
         <div style={{ alignSelf: 'end' }}><button type="submit">Add account</button></div>
       </form>
       {err && <p className="error" role="alert">{err}</p>}
+      <h3 className="setup-sub">Your home and vehicles (optional)</h3>
+      <p className="sub">If you own a home or a car, add it with what it's worth. Your net worth then counts it beside the mortgage or loan that paid for it, instead of showing only the debt. A rough figure is fine, and you can change it any time.</p>
+      <form onSubmit={addOwn} noValidate className="add-grid">
+        <label>Name<input type="text" value={own.name} placeholder={own.car ? 'Family car' : 'Our house'} onChange={(e) => { setOwn({ ...own, name: e.target.value }); setOwnErr(''); }} /></label>
+        <label>What it's worth today<MoneyInput value={own.balance} placeholder="0" onChange={(v) => setOwn({ ...own, balance: v })} /></label>
+        <div style={{ alignSelf: 'end' }}><button type="submit">Add it</button></div>
+        <label className="setup-tick" style={{ gridColumn: '1 / -1' }}><input type="checkbox" checked={own.car} onChange={(e) => { setOwn({ ...own, car: e.target.checked }); setOwnErr(''); }} /><span>It's a vehicle: lower its value a little each month<small>An estimate worked out from its age and kind, not a Kelley Blue Book value. Nothing is sent anywhere.</small></span></label>
+        {own.car && <label>Model year<input type="text" inputMode="numeric" maxLength={4} value={own.year} placeholder="2021" onChange={(e) => { setOwn({ ...own, year: e.target.value.replace(/\D/g, '') }); setOwnErr(''); }} /></label>}
+        {own.car && <label>What kind of vehicle<select value={own.kind} onChange={(e) => setOwn({ ...own, kind: e.target.value })}><option value="car">Car</option><option value="suv">SUV or crossover</option><option value="truck">Pickup truck</option><option value="hybrid">Hybrid</option><option value="ev">Electric</option></select></label>}
+      </form>
+      {ownErr && <p className="error" role="alert">{ownErr}</p>}
+      <p className="sub">Ledger looks nothing up and doesn't ask for your address. Later, on the Accounts page, "How its value is kept" can open Zillow or Kelley Blue Book for you, look a home's value up once a month if you choose that, or change how fast a vehicle's value is lowered. If a vehicle is added, your CFO also asks for the odometer reading when you read a fuel receipt.</p>
     </>
   );
 }
@@ -300,7 +329,7 @@ export default function Setup({ first, onDone }: { first: boolean; onDone: () =>
               <p className="sub">The next few screens set it up for you. It takes about five minutes, every step can be skipped, and everything here can be changed later in Settings.</p>
               {invited
                 ? <p className="sub">This copy is your household's alone. It is kept apart from every other household's and opens only for you. It lives on the home server of the person who invited you, who looks after it and its backups.</p>
-                : <p className="sub">This copy is yours alone. It lives on the machine you installed it on, and what you enter stays there: nothing is sent anywhere unless you choose to connect a bank or switch on the AI features.</p>}
+                : <p className="sub">This copy is yours alone. It lives on the machine you installed it on, and what you enter stays there: your figures are sent nowhere unless you choose to connect a bank, switch on the AI features, or ask for a home's value to be looked up.</p>}
             </>
           )}
           {step === 1 && <Household />}

@@ -1,7 +1,8 @@
+import { WeekTip } from './WeekTip';
 import { OwedNotice } from './pages/GigPay';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { useTaxes, setTaxes, setCurrency } from './lib';
+import { useTaxes, setTaxes, setCurrency, setBudgetDay, periodLong, periodShort } from './lib';
 import { api, lastLoaded, monthLong, noteLoaded, useData, handoff, monthShort, busyFor, midSession } from './lib';
 import { IconDialog, LogoDialog, UndoToast, reducedMotion } from './ui';
 import { setFoundLogos } from './logos';
@@ -324,6 +325,7 @@ export default function App() {
 
 function Gate() {
   const { data: auth, reload: reloadAuth } = useData('/api/auth/status');
+  if (auth) setBudgetDay((auth as any).budgetDay);   // which day a budget month starts, before any month is named
   if (auth) setCurrency((auth as any).currency);   // before the pages below draw a single amount
   // Plays once, right after signing in.
   const [welcome, setWelcome] = useState(false);
@@ -613,6 +615,7 @@ function DemoBanner() {
     <div className="bank-attention demo-banner" role="note">
       <span className="grow"><b>This is a demo.</b> Every figure here is made up.<span className="demo-more"> Click around and change anything you like: it is all wiped and started fresh within the hour. Bank sync, uploads and email are switched off here, and Ask your CFO shows example answers.</span></span>
       {d.repo && <a className="button" href={`https://github.com/${d.repo}`} target="_blank" rel="noreferrer">Get Ledger</a>}
+      {(d.version || d.updated) && <small className="demo-build">{d.version ? `Running version ${d.version}.` : ''}{d.updated ? ` Updated ${new Date(`${d.updated}T12:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}.` : ''}</small>}
     </div>
   );
 }
@@ -737,6 +740,7 @@ function Shell({ onAuthChanged }: { onAuthChanged: () => void }) {
           <span>Ask your</span>
           <CfoSeal size={84} />
         </a>
+        {!narrow && <WeekTip />}
         {bank?.sampleData && <div className="sample-note">{bank?.demo ? 'A demo with made-up figures.' : <>Sample data. <a href="#connections" onClick={jump(GO.bank)}>Connect your bank</a> to see your own.</>}</div>}
       </nav>
 
@@ -763,7 +767,7 @@ function Shell({ onAuthChanged }: { onAuthChanged: () => void }) {
               <select className="month" value={active} onChange={(e) => setMonth(e.target.value)} aria-label="Month">
                 {months.map((m) => (
                   // A phone has no room for "November 2026" beside a long page title, so the month is shortened there.
-                  <option key={m} value={m}>{narrow ? `${monthShort(m)} ${m.slice(0, 4)}` : monthLong(m)}</option>
+                  <option key={m} value={m}>{narrow ? periodShort(m) : periodLong(m)}</option>
                 ))}
               </select>
             )}

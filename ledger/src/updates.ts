@@ -13,15 +13,25 @@
 // device remembers what it has seen.
 export type NewsGo = { page?: string; fold?: string; at?: string; open?: 'cfo' };
 export const JUST_ADDED: [title: string, text: string, more?: { date: string; go?: NewsGo }][] = [
+  ['Your home in your net worth', 'Add your home, a vehicle or other property on the Accounts page, at a value you type, so your net worth counts what your mortgage and car loans paid for. Reports also has a new picture of where the month\'s money went, and Recurring a calendar of your bills.', { date: '2026-11-27', go: { page: 'accounts', at: '[data-go="add-by-hand"]' } }],
   ['Try a different payoff plan', 'On the Debt page, "Try a different plan" sets smallest balance first beside highest rate first, and lets you try another monthly extra or a one-time amount to see what it would do. Nothing changes until you decide.', { date: '2026-11-27', go: { page: 'debt', fold: 'debt-try', at: '[data-go="plan-try"]' } }],
   ['Your own order and groups', 'On the Budgets page, move categories up and down, put them in groups of your own, merge two together or hide one you no longer use. Accounts and savings goals can be reordered too.', { date: '2026-11-26', go: { page: 'budgets', at: '[data-go="cat-organise"], [data-go="cat-group"]' } }],
   ['Leave an account out of the budget', 'For "fun money" accounts, a child\'s account, or anything you want to see but not count. On the Accounts page, choose "Leave out of the budget" on an account: its balance still shows, and its spending stops counting toward your budgets and totals.', { date: '2026-11-24', go: { page: 'accounts', at: '[data-go="off-budget"], [data-go~="account-row"] .more-btn' } }],
-  ['Hand your CFO a bank screenshot', 'The paperclip in Ask your CFO takes a screenshot of your bank\'s recent activity, or its CSV export, and adds what Ledger is missing. You tick the rows first, and nothing is counted twice when the bank catches up.', { date: '2026-11-24', go: { page: 'dashboard', open: 'cfo', at: '.cfo-attach, .cfo-idea-file' } }],
   ['Allowances', 'A notebook of what you hold for each child: a weekly allowance that adds itself, money for chores, and what they spend, with spend, save and give jars if you like. Switch it on in Settings, "Allowances".', { date: '2026-11-24', go: { page: 'connections', fold: 'allowance', at: '[data-go="allowance-switch"]' } }],
 ];
 
 export const UPDATES: [date: string, items: string[]][] = [
   ['2026-11-27', [
+    'Your budget month can start on a day other than the 1st, such as payday on the 20th: Budgets, "When your budget month starts" (or Settings, "Budget month"). Budgets, what is spent and left, carry-over, reports and the recap follow it; taxes and bill dates stay on the calendar.',
+    'The card about purchases filed under "Other" has "Show them", which lists them shop by shop so you can file a shop yourself, and "Hide for good" if you would rather leave them be.',
+    '"Whose is what" on the Accounts page can show which accounts are behind each person\'s figures, and a tap takes you to one.',
+    'A vehicle whose value is lowered each month now has its rate worked out from its model year, what kind of vehicle it is and how much it is really driven, using published averages. A rate of your own still works.',
+    'After a fuel receipt is read, your CFO asks for the odometer reading. With two readings a couple of months apart, a vehicle whose value is lowered each month follows how much it is really driven.',
+    'A vehicle\'s value can lower itself a little each month: on a car you have added, "How its value is kept" has "Lower it each month", set by how much it is driven. It is an estimate by a rule of thumb, not a Kelley Blue Book value.',
+    'Feature of the week: on a computer, a small card under "Ask your CFO" names one thing in Ledger you could use and haven\'t set up yet, a new one each Monday. "Tell me more" opens a short description with "Show me" and "Ignore". Settings, "Feature of the week" switches it off.',
+    'Your home, vehicles and other property can be counted in your net worth: on the Accounts page, "Add an account by hand" has "A home, vehicle or other property". You type its value, with a button that opens Zillow, or have a home in the United States looked up once a month with a free key of your own ("How its value is kept").',
+    'Where the money went, on Reports: one month as a single picture, with money in on the left and each kind of spending, and what was left, on the right.',
+    'A calendar view of your bills on the Recurring page, with paydays marked.',
     'Try a different plan, on the Debt page: smallest balance first and highest rate first side by side, with boxes to try another monthly extra or a one-time amount. It changes nothing.',
     'Months of expenses covered, on the Accounts page: how long your savings would last at your usual spending.',
     'Hide names from the AI (Settings, "AI recap and logos"): the recap and Ask your CFO are sent plain labels in place of your names, employers, accounts and banks, and your own names are put back in the answer.',

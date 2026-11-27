@@ -1,7 +1,7 @@
 import { GO, jump } from '../go';
 import { Area, Bar, BarChart, CartesianGrid, ComposedChart, Line, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useEffect, useState } from 'react';
-import { api, cents, compact, dayShort, daysUntil, money, monthLong, monthShort, signed, useData, useGig, lastLoaded, noteLoaded } from '../lib';
+import { api, cents, compact, dayShort, daysUntil, money, periodLong, monthShort, signed, useData, useGig, lastLoaded, noteLoaded } from '../lib';
 import { GoalsMini } from './Goals';
 import { Logo, Meter, NumField, Roll, Skeleton, TxAmount, reducedMotion, isPhone } from '../ui';
 import { celebrate, once } from '../celebrate';
@@ -351,7 +351,7 @@ export default function Dashboard({ month }: { month: string }) {
 
   return (
     <div className={`stack dash ${ordered ? 'own-order' : ''}`}>
-      {cheer === month && <div className="cheer" role="status">🎉 {monthLong(month)} finished {money(s.budget - s.spent)} under budget.</div>}
+      {cheer === month && <div className="cheer" role="status">🎉 {periodLong(month)} finished {money(s.budget - s.spent)} under budget.</div>}
       {show('glance') && s.isCurrent && o && (
         <Slot at={place('glance')}>
         <section className="strip" aria-label="At a glance">
@@ -389,7 +389,7 @@ export default function Dashboard({ month }: { month: string }) {
         <a className="tile" href="#dashboard/income">
           <div className="label">Income</div>
           <div className="value"><Roll value={s.income} format={money} /></div>
-          <div className="sub">{monthLong(month)}</div>
+          <div className="sub">{periodLong(month)}</div>
         </a>
         <a className="tile" href="#dashboard/saved">
           <div className="label">{saved >= 0 ? 'Saved' : 'Overspent'}</div>
@@ -403,7 +403,7 @@ export default function Dashboard({ month }: { month: string }) {
       {show('pace') && <Slot at={place('pace')}><section className="card">
         <div className="pace-head">
           <div>
-            <div className="label">{s.isCurrent ? 'Spent so far this month' : `Spent in ${monthLong(month)}`}</div>
+            <div className="label">{s.isCurrent ? 'Spent so far this month' : `Spent in ${periodLong(month)}`}</div>
             <div className="hero"><Roll value={s.spent} format={money} /></div>
             <div className="sub">
               of {money(s.budget)} budget ·{' '}
@@ -428,9 +428,9 @@ export default function Dashboard({ month }: { month: string }) {
                 </linearGradient>
               </defs>
               <CartesianGrid vertical={false} stroke="var(--grid)" />
-              <XAxis dataKey="day" ticks={ticks} tickLine={false} axisLine={{ stroke: 'var(--axis)' }} tick={{ fill: 'var(--ink3)', fontSize: 12 }} tickFormatter={(d) => `${monthShort(month)} ${d}`} />
+              <XAxis dataKey="day" ticks={ticks} tickLine={false} axisLine={{ stroke: 'var(--axis)' }} tick={{ fill: 'var(--ink3)', fontSize: 12 }} tickFormatter={(d) => (s.daily[d - 1]?.date ? dayShort(s.daily[d - 1].date) : `${monthShort(month)} ${d}`)} />
               <YAxis width={44} tickLine={false} axisLine={false} tick={{ fill: 'var(--ink3)', fontSize: 12 }} tickFormatter={compact} tickCount={4} />
-              <Tooltip content={<Tip title={(d: number) => `${monthShort(month)} ${d}`} />} cursor={{ stroke: 'var(--axis)' }} />
+              <Tooltip content={<Tip title={(d: number) => (s.daily[d - 1]?.date ? dayShort(s.daily[d - 1].date) : `${monthShort(month)} ${d}`)} />} cursor={{ stroke: 'var(--axis)' }} />
               <Line name="Budget pace" dataKey="pace" stroke="var(--ink3)" strokeWidth={2} strokeDasharray="5 5" dot={false} activeDot={false} isAnimationActive={animate} animationDuration={700} />
               <Area name="Spent" dataKey="spent" stroke="var(--accent)" strokeWidth={2.5} fill="url(#paceFill)" fillOpacity={1} dot={false} activeDot={{ r: 4, stroke: 'var(--panel)', strokeWidth: 2 }} isAnimationActive={animate} animationDuration={900} animationEasing="ease-out" />
               {s.isCurrent && today && <ReferenceDot x={today.day} y={today.spent} r={5} fill="var(--accent)" stroke="var(--panel)" strokeWidth={2} />}
@@ -459,7 +459,7 @@ export default function Dashboard({ month }: { month: string }) {
                 <CartesianGrid vertical={false} stroke="var(--grid)" />
                 <XAxis dataKey="month" tickLine={false} axisLine={{ stroke: 'var(--axis)' }} tick={{ fill: 'var(--ink3)', fontSize: 12 }} tickFormatter={monthShort} />
                 <YAxis width={44} tickLine={false} axisLine={false} tick={{ fill: 'var(--ink3)', fontSize: 12 }} tickFormatter={compact} tickCount={4} />
-                <Tooltip content={<Tip title={monthLong} />} cursor={{ fill: 'var(--hover)' }} />
+                <Tooltip content={<Tip title={periodLong} />} cursor={{ fill: 'var(--hover)' }} />
                 <Bar name="Income" dataKey="income" fill="url(#barIn)" radius={[4, 4, 0, 0]} maxBarSize={16} isAnimationActive={animate} animationDuration={700} />
                 <Bar name="Spending" dataKey="spending" fill="url(#barOut)" radius={[4, 4, 0, 0]} maxBarSize={16} isAnimationActive={animate} animationDuration={700} animationBegin={150} />
               </BarChart>

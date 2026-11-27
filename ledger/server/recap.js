@@ -9,6 +9,7 @@
 import { whole, currency, currencyNote } from './money.js';
 import Anthropic from '@anthropic-ai/sdk';
 import { db, iso, getSetting, setSetting } from './db.js';
+import { periodOf, periodBounds, startDay, periodNote } from './period.js';
 import { outlook } from './cashflow.js';
 import { status as vipkidStatus } from './vipkid.js';
 import { gig } from './gig.js';
@@ -39,8 +40,8 @@ function reviewCount(start, end) {
     WHERE ${NEEDS_REVIEW} AND t.date >= ? AND t.date < ?`).get(start, end);
 }
 function reviewFor(month) {
-  const ym = /^\d{4}-\d{2}$/.test(month || '') ? month : iso(new Date()).slice(0, 7);
-  const r = reviewCount(`${ym}-01`, iso(new Date(Number(ym.slice(0, 4)), Number(ym.slice(5)), 1)));
+  const ym = /^\d{4}-\d{2}$/.test(month || '') ? month : periodOf();
+  const r = reviewCount(periodBounds(ym).start, periodBounds(ym).end);
   return { count: r.n, total: Math.round(r.total) };
 }
 
@@ -48,8 +49,8 @@ function reviewFor(month) {
 export function buildFacts(month, { summaryFor, debtPlan, taxEstimate }) {
   const s = summaryFor(month);
   const today = iso(new Date());
-  const start = `${s.month}-01`;
-  const end = iso(new Date(Number(s.month.slice(0, 4)), Number(s.month.slice(5)), 1));
+  // The budget month's own dates: the calendar month unless the start day was moved (server/period.js).
+  const { start, end } = periodBounds(s.month);
   const horizon = iso(new Date(Date.now() + 10 * 86400000));
   const largest = db.prepare(`
     SELECT t.merchant, -t.amount amount, t.date, c.name category FROM transactions t JOIN categories c ON c.id = t.category_id
@@ -60,6 +61,7 @@ export function buildFacts(month, { summaryFor, debtPlan, taxEstimate }) {
   const facts = {
     today, month: s.month, month_name: monthName(s.month), is_current_month: s.isCurrent,
     day_of_month: s.lastDay, days_in_month: s.days,
+    ...(startDay() === 1 ? {} : { budget_month_runs: `${start} up to, not including, ${end}. This household's budget month starts on day ${startDay()} of the calendar month; "day_of_month" counts from that day.` }),
     spent_so_far: s.spent, monthly_budget: s.budget,
     // No budgets yet (a new copy): said in words, so the recap doesn't report "$0 of a $0 budget".
     ...(s.budget > 0 ? {} : { no_budgets_set: 'This household has not set any budgets yet. Do not compare spending with a budget; say once that budgets can be set on the Budgets page.' }),
@@ -195,7 +197,7 @@ async function writeWithClaude(facts) {
   const params = {
     model: id,
     max_tokens: 16000,
-    system: SYSTEM() + (currencyNote() ? '\n\n' + currencyNote() : ''),
+    system: SYSTEM() + (currencyNote() ? '\n\n' + currencyNote() : '') + periodNote(),
     // A short, routine summary: low effort keeps it quick and inexpensive.
     output_config: { effort: 'low' },
     messages: [{ role: 'user', content: `Today's figures:\n${mask(JSON.stringify(facts, null, 1))}` }],
@@ -223,7 +225,7 @@ async function recap(month, deps, force) {
   const useHa = viaHa();
   const useClaude = !useHa && apiKey() !== '';
   // The leading number changes whenever the recap's ingredients do, so old cached text isn't reused.
-  const key = `2|${facts.month}|${facts.is_current_month ? facts.today : 'final'}|${useHa ? 'ha' : useClaude ? model() : 'rules'}${currency() === 'USD' ? '' : `|${currency()}`}${hideNames() ? '|hidden' : ''}`;   // a recap written in another currency is not reused (dollar households keep their cached one)
+  const key = `2|${facts.month}|${facts.is_current_month ? facts.today : 'final'}|${useHa ? 'ha' : useClaude ? model() : 'rules'}${currency() === 'USD' ? '' : `|${currency()}`}${startDay() === 1 ? '' : `|d${startDay()}`}${hideNames() ? '|hidden' : ''}`;   // a recap written in another currency is not reused (dollar households keep their cached one)
   let cache = {};
   try { cache = JSON.parse(getSetting('recap_cache', '{}')); } catch { /* start fresh */ }
   if (!force && cache[key]) return cache[key];
@@ -232,7 +234,7 @@ async function recap(month, deps, force) {
     let result;
     if (useHa) {
       try {
-        const text = await haAsk('the dashboard recap', `${SYSTEM()}${currencyNote() ? '\n\n' + currencyNote() : ''}\n\nToday's figures:\n${mask(JSON.stringify(facts, null, 1))}`, 'recap', "this month's totals by category, bills due soon, the five largest purchases, and your debt and checking figures");
+        const text = await haAsk('the dashboard recap', `${SYSTEM()}${currencyNote() ? '\n\n' + currencyNote() : ''}${periodNote()}\n\nToday's figures:\n${mask(JSON.stringify(facts, null, 1))}`, 'recap', "this month's totals by category, bills due soon, the five largest purchases, and your debt and checking figures");
         result = { text: unmask(text), source: 'ha', by: aiName(), at: Date.now() };
       } catch (e) {
         result = { text: writeFromRules(facts), source: 'automatic', error: e.message, at: Date.now() };

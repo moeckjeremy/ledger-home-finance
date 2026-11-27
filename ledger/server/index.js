@@ -15,7 +15,7 @@ import { stateChosen, stateList, stateOf, STATES } from './states.js';
 import { installAuth, passwordSet, claimed } from './auth.js';
 import * as simplefin from './simplefin.js';
 import * as importer from './importer.js';
-import { getRecurrings, installRecurring, nextDue, inMonth } from './recurring.js';
+import { cleanPayLink, getRecurrings, installRecurring, nextDue, inMonth } from './recurring.js';
 import { installUndo, keepForUndo } from './undo.js';
 import { installRecap } from './recap.js';
 import { installAi } from './ai.js';
@@ -48,6 +48,13 @@ import { applyDuePlans, forgetPlans, installBudgetPlan, plannedFor } from './bud
 import { installUpdateCheck } from './updatecheck.js';
 import { installCushion } from './cushion.js';
 import { demoMode, installDemo } from './demo.js';
+import { installBillCalendar } from './billcalendar.js';
+import { installHighlights } from './highlights.js';
+import { installHomeValue, typedByHand } from './homevalue.js';
+import { installDepreciation } from './depreciate.js';
+import { installOdometer } from './odometer.js';
+import { installVin } from './vin.js';
+import { installPeriod, periodBounds, periodOf, periodSql, dayIndex, addDays, startDay } from './period.js';
 import { installDemoCfo } from './democfo.js';
 import { installHideNames } from './hidenames.js';
 import { installPrices } from './prices.js';
@@ -97,14 +104,18 @@ installTapEndpoint(app);
 installAuth(app);
 installTap(app);
 installRecurring(app);
+installBillCalendar(app);
+installHomeValue(app);
+installDepreciation(app);
+installOdometer(app);
+installVin(app);
+installPeriod(app);
 installUndo(app);
 
 const round = (n) => Math.round(n * 100) / 100;
-const monthBounds = (m) => {
-  const [y, mo] = m.split('-').map(Number);
-  return { start: `${m}-01`, end: iso(new Date(y, mo, 1)), days: new Date(y, mo, 0).getDate(), y, mo };
-};
-const validMonth = (m) => (/^\d{4}-\d{2}$/.test(m || '') ? m : iso(new Date()).slice(0, 7));
+// A budget month: the calendar month unless the household moved its start day (server/period.js).
+const monthBounds = periodBounds;
+const validMonth = (m) => (/^\d{4}-\d{2}$/.test(m || '') ? m : periodOf());
 
 // Transactions worth a second look: anything left in "Other", plus payment-app
 // transfers (Venmo, Cash App), which are often really haircuts or groceries.
@@ -122,8 +133,8 @@ const TX_SELECT = `
 app.get('/api/months', (_req, res) => {
   // The current month is always offered, so a household with no purchases yet still sees its
   // dashboard (balances, forecast, budgets) and not an empty page.
-  const seen = db.prepare("SELECT DISTINCT substr(date,1,7) m FROM transactions ORDER BY m DESC").all().map((r) => r.m);
-  res.json([...new Set([iso(new Date()).slice(0, 7), ...seen])].sort().reverse());
+  const seen = db.prepare(`SELECT DISTINCT ${periodSql('date')} m FROM transactions ORDER BY m DESC`).all().map((r) => r.m);
+  res.json([...new Set([periodOf(), ...seen])].sort().reverse());
 });
 
 app.get('/api/categories', (_req, res) => {
@@ -136,8 +147,9 @@ function summaryFor(monthArg) {
   applyDuePlans();   // budgets planned ahead for a month that has now begun (server/budgetplan.js)
   const { start, end, days, y, mo } = monthBounds(month);
   const today = iso(new Date());
-  const isCurrent = today.slice(0, 7) === month;
-  const lastDay = isCurrent ? Number(today.slice(8)) : days;
+  const isCurrent = periodOf(today) === month;
+  // Days are counted from the month's own first day, which is the 1st unless the start day was moved.
+  const lastDay = isCurrent ? dayIndex(today, start) : days;
 
   const categories = db.prepare(`
     SELECT c.id, c.name, c.icon, c.color, c.fixed, c.budget, c.hidden, c.group_id, COALESCE(-SUM(t.amount), 0) spent
@@ -178,18 +190,32 @@ function summaryFor(monthArg) {
   const byDay = Object.fromEntries(db.prepare(`
     SELECT t.date, -SUM(t.amount) s FROM transactions t JOIN categories c ON c.id = t.category_id
     WHERE c.kind = 'expense' AND t.date >= ? AND t.date < ? GROUP BY t.date`).all(start, end)
-    .map((r) => [Number(r.date.slice(8)), r.s]));
+    .map((r) => [dayIndex(r.date, start), r.s]));
 
   // Budget pace: flexible categories accrue evenly through the month; fixed
   // categories step up on the days their bills are due.
   const recurrings = getRecurrings();
   const flexBudget = categories.filter((c) => !c.fixed).reduce((a, c) => a + c.budget, 0);
   const fixedCats = categories.filter((c) => c.fixed);
+  // A bill's days within this budget month. On the calendar that is the bill's own day; with a moved start
+  // day the month spans two calendar months, so each is asked and the dates that fall inside are kept.
+  const billsIn = (r) => {
+    if (startDay() === 1) return inMonth(r, y, mo);
+    const out = [];
+    for (const [yy, mm] of [[y, mo], mo === 12 ? [y + 1, 1] : [y, mo + 1]]) {
+      const last = new Date(yy, mm, 0).getDate();
+      for (const b of inMonth(r, yy, mm)) {
+        const date = `${yy}-${String(mm).padStart(2, '0')}-${String(Math.min(b.day, last)).padStart(2, '0')}`;
+        if (date >= start && date < end) out.push({ day: dayIndex(date, start), amount: b.amount });
+      }
+    }
+    return out;
+  };
   const paceAt = (d) => {
     let p = (flexBudget * d) / days;
     for (const c of fixedCats) {
       // Yearly bills only count in the month they renew.
-      const bills = recurrings.filter((r) => r.category_id === c.id).flatMap((r) => inMonth(r, y, mo));
+      const bills = recurrings.filter((r) => r.category_id === c.id).flatMap((r) => billsIn(r));
       const total = bills.reduce((a, r) => a + r.amount, 0);
       if (!total) p += (c.budget * d) / days;
       else p += (c.budget * bills.filter((r) => r.day <= d).reduce((a, r) => a + r.amount, 0)) / total;
@@ -200,7 +226,7 @@ function summaryFor(monthArg) {
   let cum = 0;
   for (let d = 1; d <= days; d++) {
     cum += byDay[d] || 0;
-    daily.push({ day: d, spent: d <= lastDay ? round(cum) : null, pace: paceAt(d) });
+    daily.push({ day: d, date: addDays(start, d - 1), spent: d <= lastDay ? round(cum) : null, pace: paceAt(d) });
   }
 
   const spent = round(categories.reduce((a, c) => a + c.spent, 0));
@@ -233,7 +259,7 @@ function summaryFor(monthArg) {
   }
 
   return { aside,
-    month, isCurrent, lastDay, days, spent, budget, income, netWorth,
+    month, isCurrent, lastDay, days, start, end, startDay: startDay(), spent, budget, income, netWorth,
     netWorthChange: prior ? round(netWorth - prior) : 0,
     paceToday: paceAt(lastDay), categories, daily, upcoming, cashflow,
     recent: db.prepare(`${TX_SELECT} WHERE t.date >= ? AND t.date < ? ORDER BY t.date DESC, t.id DESC LIMIT 7`).all(start, end),
@@ -252,7 +278,7 @@ app.get('/api/insight', (req, res) => {
   const prev = monthBounds(prevMonth);
   // "By this point last month": the same number of days into the previous month.
   const cutDay = Math.min(s.lastDay, prev.days);
-  const prevCut = s.isCurrent ? iso(new Date(prev.y, prev.mo - 1, cutDay + 1)) : prev.end;
+  const prevCut = s.isCurrent ? addDays(prev.start, cutDay) : prev.end;
 
   const lastByCat = Object.fromEntries(db.prepare(`
     SELECT t.category_id id, -SUM(t.amount) s FROM transactions t JOIN categories c ON c.id = t.category_id
@@ -395,6 +421,8 @@ app.post('/api/transactions', (req, res) => {
   if (!cat) return res.status(400).json({ error: 'Choose a category.' });
   const account = db.prepare('SELECT type, manual FROM accounts WHERE id = ?').get(Number(account_id));
   if (!account) return res.status(400).json({ error: 'Choose an account.' });
+  // A home or vehicle is a value typed by hand, not somewhere money is spent from.
+  if (account.type === 'property' || account.type === 'insurance') return res.status(400).json({ error: "A purchase can't be recorded on that. Choose the account it was paid from." });
   // Entries read from a screenshot say which way the money went; otherwise the category decides.
   const signed = round(req.body.direction === 'in' ? amt : req.body.direction === 'out' ? -amt : cat.kind === 'income' ? amt : -amt);
   // On a bank or card account the bank will list this too, so the entry waits to be replaced by it.
@@ -416,7 +444,7 @@ app.post('/api/transactions', (req, res) => {
 app.post('/api/transfers', (req, res) => {
   const { date } = req.body || {};
   const amt = round(Number(req.body?.amount));
-  const find = db.prepare("SELECT id, name, type, manual FROM accounts WHERE id = ? AND type != 'insurance'");
+  const find = db.prepare("SELECT id, name, type, manual FROM accounts WHERE id = ? AND type NOT IN ('insurance', 'property')");
   const from = find.get(Number(req.body?.from)), to = find.get(Number(req.body?.to));
   if (!from || !to) return res.status(400).json({ error: 'Choose both accounts.' });
   if (from.id === to.id) return res.status(400).json({ error: 'Choose two different accounts.' });
@@ -622,12 +650,29 @@ app.get('/api/accounts', (_req, res) => {
   res.json({ accounts, history: history.map((h) => ({ ...h, net: round(h.net), assets: round(h.assets), debts: round(h.debts) })) });
 });
 
+// One month's money as a flow (the Reports page's "Where the money went"): what came in by income
+// category, what went out by spending category (refunds netted, as everywhere), and what was left, or how
+// much more went out than came in. Transfers and anything not counted in the budget are in neither side.
+app.get('/api/reports/flow', (req, res) => {
+  const month = validMonth(String(req.query.month || ''));
+  const { start, end } = monthBounds(month);
+  const own = ownerWhere(String(req.query.who || ''));
+  const mine = own.sql ? ` AND ${own.sql}` : '';
+  const sums = (kind, sign) => db.prepare(`
+    SELECT c.name, c.color, ${sign}SUM(t.amount) amount FROM transactions t JOIN categories c ON c.id = t.category_id
+    WHERE c.kind = ? AND t.date >= ? AND t.date < ?${mine} GROUP BY c.id HAVING ${sign}SUM(t.amount) > 0.005 ORDER BY amount DESC`).all(kind, start, end, ...own.args)
+    .map((r) => ({ name: r.name, color: r.color, amount: round(r.amount) }));
+  const income = sums('income', ''), spending = sums('expense', '-');
+  const inn = round(income.reduce((a, r) => a + r.amount, 0)), out = round(spending.reduce((a, r) => a + r.amount, 0));
+  res.json({ month, income, spending, in: inn, out, left: round(Math.max(0, inn - out)), short: round(Math.max(0, out - inn)) });
+});
+
 app.get('/api/reports', (req, res) => {
   // ?who= limits the figures to one adult's accounts, or the shared ones (server/owners.js).
   const own = ownerWhere(String(req.query.who || ''));
   const mine = own.sql ? ` AND ${own.sql}` : '';
   const rows = db.prepare(`
-    SELECT substr(t.date,1,7) month, t.category_id, -SUM(t.amount) total
+    SELECT ${periodSql('t.date')} month, t.category_id, -SUM(t.amount) total
     FROM transactions t JOIN categories c ON c.id = t.category_id
     WHERE c.kind = 'expense'${mine} GROUP BY month, t.category_id ORDER BY month`).all(...own.args);
   const months = {};
@@ -1099,7 +1144,22 @@ app.put('/api/accounts/:id/balance', (req, res) => {
   const b = Number(req.body?.balance);
   if (req.body?.balance === '' || req.body?.balance == null || !Number.isFinite(b) || b < 0) return res.status(400).json({ error: 'Enter an amount of 0 or more.' });
   setStart(acc.id, [...DEBT_TYPES, 'credit'].includes(acc.type) ? -round(b) : round(b));
-  res.json({ ok: true });
+  // A home on the monthly lookup that is given a typed value goes back to being kept by hand.
+  res.json({ ok: true, autoOff: typedByHand(acc.id) });
+});
+
+// Where a property's value is checked (2026-11-27): a link the household saves, to Zillow, their lender's
+// home-value report or anywhere else, opened in a new tab when they press it. **Ledger never looks a value
+// up itself**: that would mean sending the household's address to another company, and none of them offers
+// a way to do it that a self-hosted app may use. The address is never asked for or stored.
+if (!db.prepare('PRAGMA table_info(accounts)').all().some((c) => c.name === 'value_link')) db.exec('ALTER TABLE accounts ADD COLUMN value_link TEXT');
+app.put('/api/accounts/:id/value-link', (req, res) => {
+  const acc = db.prepare("SELECT id FROM accounts WHERE id = ? AND type = 'property'").get(Number(req.params.id));
+  if (!acc) return res.status(400).json({ error: 'Only a home, vehicle or other property can have a link like this.' });
+  const url = cleanPayLink(req.body?.url);
+  if (url === null) return res.status(400).json({ error: 'Enter a web address starting with https://.' });
+  db.prepare('UPDATE accounts SET value_link = ? WHERE id = ?').run(url || null, acc.id);
+  res.json({ ok: true, url });
 });
 
 app.delete('/api/accounts/:id', (req, res) => {
@@ -1122,6 +1182,7 @@ installHoldings(app);
 installReconcile(app);
 installDemoCfo(app, { summaryFor, debtPlan });   // a public demo's example answers; nothing on any other copy
 installCfo(app, { summaryFor, debtPlan, taxEstimate, goals, investments });
+installHighlights(app);   // the side menu's "Feature of the week"
 // Loan payments already saved take their loan's name (does nothing once they have it).
 nameLoanPayments();
 applyNames();
@@ -1176,7 +1237,7 @@ installLogoFinder(app);
 
 // ---- Bank connection (SimpleFIN) --------------------------------------------
 
-const ACCOUNT_TYPES = ['checking', 'savings', 'credit', 'investment', 'hsa', 'auto', 'mortgage', 'loan', 'insurance'];
+const ACCOUNT_TYPES = ['checking', 'savings', 'credit', 'investment', 'hsa', 'auto', 'mortgage', 'loan', 'insurance', 'property'];
 // The clock Ledger is working by. "Today", paydays and the email's hour all follow the server's time zone
 // (the TZ setting of its container), so this is the way to see which one it really has.
 // `needs`: nobody gave this copy a time zone and it has not taken one from a browser yet (server/db.js).
@@ -1232,7 +1293,7 @@ app.post('/api/simplefin/disconnect', (_req, res) => {
 // ---- File import ------------------------------------------------------------
 
 app.get('/api/import/accounts', (_req, res) => {
-  res.json(db.prepare("SELECT id, name, institution, type, balance FROM accounts WHERE type NOT IN ('cash', 'insurance') ORDER BY name").all());
+  res.json(db.prepare("SELECT id, name, institution, type, balance FROM accounts WHERE type NOT IN ('cash', 'insurance', 'property') ORDER BY name").all());
 });
 app.post('/api/import/preview', (req, res) => {
   try { res.json(importer.preview(req.body?.csv, req.body?.flip)); } catch (e) { res.status(400).json({ error: e.message }); }

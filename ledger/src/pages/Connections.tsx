@@ -1,7 +1,9 @@
+import { WeekTipSettings } from '../WeekTip';
 import { GO, jump } from '../go';
 import { SettingsSearch } from '../SettingsSearch';
 import { CurrencySettings } from '../Currency';
-import { currencyCode } from '../lib';
+import { BudgetMonth, budgetDayWords } from '../BudgetMonth';
+import { currencyCode, budgetStartDay } from '../lib';
 import { GigPay } from './GigPay';
 import { UpdateSettings } from '../UpdateNotice';
 import { useTaxes, setTaxes } from '../lib';
@@ -17,7 +19,7 @@ import { choosePhoto, photoUrl, readPhotoMeta, removePhoto, savePhotoMeta, type 
 import { ACCENTS, COLORWAYS, STANDARD_LOOK, FONTS, INKS, readLook, saveLook, type Look, SIZES, readSize, saveSize } from '../appearance';
 
 const TYPES = [
-  ['checking', 'Checking'], ['savings', 'Savings'], ['credit', 'Credit card'], ['investment', 'Investment or retirement'], ['hsa', 'Health savings account'],
+  ['checking', 'Checking'], ['savings', 'Savings'], ['credit', 'Credit card'], ['investment', 'Investment or retirement'], ['hsa', 'Health savings account'], ['property', 'Home, vehicle or other property'],
   ['auto', 'Car loan'], ['mortgage', 'Mortgage'], ['loan', 'Other loan'], ['insurance', 'Insurance policy'],
 ];
 
@@ -634,7 +636,7 @@ function RepoStats() {
         </>
       ) : null}
       {r.trafficError ? <p className="error" role="alert">{r.trafficError}</p> : null}
-      <p className="sub">Stars, forks and issues are public. A download is counted each time a machine fetches the code, which installing or updating the Home Assistant add-on does, so <b>your own installs are in the count</b>. "Different sources" is the nearer guess at how many people. GitHub runs about a day behind and never says who.</p>
+      <p className="sub">Stars, forks and issues are public. A download is counted each time a machine fetches the code, which installing or updating the Home Assistant app does, so <b>your own installs are in the count</b>. "Different sources" is the nearer guess at how many people. GitHub runs about a day behind and never says who.</p>
       {!r.hasToken ? (
         <div className="key-guide">
           <small>Downloads and page views are only shown to the repository's owner, so GitHub wants a token for them. One that can only read is enough:</small>
@@ -2114,6 +2116,7 @@ export default function Connections({ onChanged }: { onChanged: () => void }) {
         </Fold>
       )}
       {needsPassword ? null : <Fold id="currency" title="Currency" note={`Amounts are written in ${currencyCode()}`}><CurrencySettings /></Fold>}
+      {needsPassword ? null : <Fold id="budget-month" title="Budget month" note={`Starts on ${budgetDayWords(budgetStartDay())}`}><BudgetMonth /></Fold>}
       {needsPassword ? null : <Fold id="import" title="Import a file" note="For accounts the bank connection can't reach, such as Apple Card"><ImportFile sampleData={s.sampleData} onDone={refresh} /></Fold>}
 
       {needsPassword ? null : <p className="sub"><button className="link" onClick={() => dispatchEvent(new Event('ledger-tour'))}>Take the tour</button> to be shown round the app. <button className="link" onClick={() => dispatchEvent(new Event('ledger-setup'))}>Open the setup guide</button> to go through your household, accounts, paydays and budgets step by step. <a href="#about">About Ledger</a> explains how everything works, and is where to ask for something or report a problem.</p>}
@@ -2164,6 +2167,7 @@ export default function Connections({ onChanged }: { onChanged: () => void }) {
       {needsPassword ? null : <Fold id="allowance" title="Allowances" note="A notebook of what you hold for each child"><AllowanceSwitch /></Fold>}
       {needsPassword ? null : <Fold id="email" title="Summary email" note="A short summary sent on the days you choose"><WeeklyEmail /></Fold>}
       {needsPassword ? null : <Fold id="alerts" title="Alerts" note="Emails when checking runs low, a bill is due or a budget tips over, and the pay stub reminder"><Alerts /></Fold>}
+      {needsPassword ? null : <Fold id="tips" title="Feature of the week" note="One suggestion a week in the side menu, on a computer"><WeekTipSettings /></Fold>}
       {needsPassword || !auth.ingress ? null : <Fold id="ha-sensors" title="Home Assistant sensors" note="Optional: let automations react to bills, a low balance or budgets"><HaSensors /></Fold>}
       {needsPassword ? null : <Fold id="ai" title="AI recap and logos" note="Claude writes the recap, reads screenshots and finds logos"><AiRecap /></Fold>}
       {needsPassword || !gig.classes ? null : <Fold id="vipkid" title={`${gig.name} class calendar`} note="Reads your classes to work out each Friday's pay"><VipkidCalendar /></Fold>}

@@ -741,6 +741,98 @@ html[data-season] .mail-when .days button.on:not(.primary):not(.link) { backgrou
 .read-summary { display: flex; align-items: flex-start; gap: 12px; margin: 12px 0 10px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .read-summary svg { flex: none; }
 .read-summary p { margin: 0; line-height: 1.5; min-width: 0; overflow-wrap: anywhere; }
+/* "Where the money went" on Reports: a flow drawn in the card's own width (2026-11-27). */
+.flow-wrap { width: 100%; min-height: 40px; }
+.flow { display: block; max-width: 100%; }
+.flow-label { fill: var(--ink); font-family: var(--font, inherit); paint-order: stroke; stroke: var(--panel, #fff); stroke-width: 3px; stroke-linejoin: round; }
+.flow-name { font-weight: 600; }
+.flow-amount { fill: var(--ink2); font-weight: 400; }
+.flow-card .card-head select { max-width: 60%; }
+/* The bills calendar on the Recurring page (2026-11-27). Seven equal columns at any width. */
+.bills-view { margin: 0 0 12px; }
+.bill-cal-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.bill-cal-head b { min-width: 9.5em; text-align: center; font-family: var(--display); font-size: 18px; white-space: nowrap; }
+.bill-cal-head > button:not(.link) { width: 34px; height: 34px; padding: 0; border-radius: 10px; font-size: 20px; line-height: 1; }
+.bill-cal-head small { color: var(--ink2); }
+.bill-cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.bill-cal-dow { text-align: center; font-size: 11.5px; color: var(--ink3); padding: 2px 0 4px; }
+.bill-cal-day { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; min-height: 74px; padding: 6px 7px; border-radius: 10px; border: 1px solid var(--line); background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; overflow: hidden; }
+.bill-cal-day.past { opacity: 0.55; }
+.bill-cal-day.has { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.bill-cal-day.today { border-color: var(--accent); }
+.bill-cal-day.on { box-shadow: 0 0 0 2px var(--accent); opacity: 1; }
+.bill-cal-num { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--ink2); }
+.bill-cal-day.today .bill-cal-num { color: var(--accent); font-weight: 700; }
+.bill-cal-pay { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--good, #2e9e6b); flex: none; }
+.bill-cal-amt { font-weight: 600; font-size: 13px; max-width: 100%; overflow: hidden; text-overflow: clip; white-space: nowrap; }
+.bill-cal-names { font-size: 11px; color: var(--ink2); line-height: 1.25; max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.bill-cal-key { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; }
+.bill-cal-list { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.bill-cal-list h3 { margin: 0 0 4px; font-size: 15px; }
+.bill-cal-add { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; }
+.bill-cal-add .card-head { margin-bottom: 4px; }
+.bill-cal-add .card-head h2 { font-size: 17px; }
+.bill-cal-key { flex-wrap: wrap; }
+@media (max-width: 760px) {
+  .bill-cal-grid { gap: 3px; }
+  .bill-cal-day { min-height: 54px; padding: 4px 3px; align-items: center; text-align: center; border-radius: 8px; }
+  .bill-cal-names { display: none; }
+  .bill-cal-amt { font-size: 10.5px; font-weight: 600; }
+  .bill-cal-head b { min-width: 0; flex: 0 0 auto; font-size: 17px; white-space: nowrap; }
+  .bill-cal-head .grow { flex-basis: 100%; height: 0; }
+}
+/* The two ways a property's value is kept, chosen in the add form. */
+.value-choice { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+.value-choice label { display: flex; align-items: flex-start; gap: 9px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; min-width: 0; }
+.value-choice label.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.value-choice input { margin-top: 3px; flex: none; }
+.value-choice span { display: grid; gap: 2px; min-width: 0; }
+.value-choice small { color: var(--ink2); line-height: 1.4; }
+.dep-choice input[type=number] { width: 5em; padding: 3px 6px; }
+.dep-vin { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; margin: 4px 0 8px; }
+.dep-vin small { opacity: 0.8; }
+/* On a wide screen the shop's name and its category menu sat at opposite edges (his screenshot, 2026-11-27):
+   the list is held to a readable width so the menu is right beside the shop it belongs to, and the row
+   under the pointer is lit. */
+.other-shop, .other-filed, .other-all { max-width: 760px; }
+.other-shop > .row { padding: 4px 8px; margin: 0 -8px; border-radius: 10px; }
+.other-shop > .row:hover { background: var(--hover); }
+.other-shop-name { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.other-filed b { color: var(--good); }
+.other-all { align-items: center; margin: 6px 0; }
+.other-all small { opacity: 0.8; }
+.other-unsaved { display: block; color: var(--accent); margin: -2px 0 8px; }
+.other-shop-list { margin: 0 0 8px 12px; padding-left: 10px; border-left: 2px solid var(--line); }
+.other-shop-list > small { opacity: 0.7; }
+.dep-sum { margin: 6px 0 10px; }
+.dep-sum .row small { white-space: normal; overflow: visible; }
+.dep-sum .row .num { white-space: nowrap; }
+.dep-sum .row.total { border-top: 1px solid var(--line); }
+.dep-src { margin: 0 0 10px; padding-left: 1.2em; display: grid; gap: 8px; font-size: 0.92em; }
+.mileage { display: grid; gap: 6px; padding-top: 8px; border-top: 1px solid var(--line); }
+.fuel-ask form { display: grid; gap: 8px; min-width: 0; flex: 1; }
+.fuel-ask-fields { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.fuel-ask-fields input { flex: 1 1 150px; min-width: 0; }
+.fuel-ask-fields select { flex: 0 1 auto; max-width: 100%; }
+/* Three ways don't fit across a phone: they wrap, so none is hidden off the edge. */
+.value-how .demo-pick { flex-wrap: wrap; overflow: visible; }
+.value-how { margin: 4px 0 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; display: grid; gap: 8px; min-width: 0; white-space: normal; }
+.value-how .sub { margin: 0; }
+.value-how .key-guide { margin: 0; }
+.value-how .value-link input { width: 100%; min-width: 0; }
+.value-how .value-link label { flex: 1 1 240px; min-width: 0; }
+/* "Feature of the week" under Ask your CFO in the side menu (2026-11-27). A computer only. Nothing moves.
+   The card only names the feature; the description is in a pop-up. */
+.week-tip { margin: 14px 8px 0; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line); background: color-mix(in srgb, var(--accent) 9%, transparent); display: grid; gap: 4px; text-align: left; }
+.week-tip-kicker { margin: 0; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+.week-tip b { font-size: 14px; line-height: 1.3; }
+.week-tip-acts { margin-top: 4px; }
+.week-tip-acts button { padding: 5px 11px; font-size: 13px; }
+.week-tip-text { margin: 6px 0 14px; font-size: 16px; line-height: 1.5; }
+@media (max-width: 760px) { .week-tip { display: none; } }
+/* A window too short to have room under the menu doesn't show it (and doesn't ask for it either). */
+@media (max-height: 850px) { .week-tip { display: none; } }
+.demo-build { flex-basis: 100%; color: var(--ink2); font-size: 12.5px; }
 .demo-banner { border-color: color-mix(in srgb, var(--accent) 50%, transparent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 /* Months of expenses covered (Accounts) and "Try a different plan" (Debt), 2026-11-27 */
 .cushion-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
@@ -889,6 +981,13 @@ html[data-season][data-scheme='dark'] {
 .owner-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px 24px; }
 .owner-col > b { display: block; }
 .owner-col > small { color: var(--ink3); }
+.owner-show { display: block; padding: 2px 0; font-size: 0.92em; }
+.owner-accts { display: grid; gap: 2px; margin: 4px 0 6px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; }
+.owner-acct { display: flex; gap: 10px; align-items: baseline; width: 100%; padding: 6px 4px; background: none; border: 0; border-radius: 6px; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.owner-acct:hover { background: var(--hover); }
+.owner-acct .grow { min-width: 0; overflow-wrap: anywhere; }
+.owner-acct .num { white-space: nowrap; }
+.owner-accts > small { color: var(--ink3); padding: 2px 4px; }
 .owner-filter { display: flex; justify-content: flex-end; }
 .invest-prices { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); }
 .zero-bar .zero-top { display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: center; }
@@ -1027,23 +1126,31 @@ html[data-season][data-scheme='dark'] {
 .welcome.opening .wordmark { height: 120px; margin-bottom: 0; }
 /* In the side menu the same build-up repeats every thirty seconds, fading out just before it starts again.
    The times are percentages of that loop; to change its length, work them out again from the seconds in `.wordmark.play`. */
-@keyframes logo-loop-s1 { 0%, 0.000% { transform: scaleY(0); opacity: 0; } 1.133%, 98.67% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
+/* The fade at the end is on the whole logo, not on each stroke (2026-11-27). Faded one by one, the places
+   where two strokes cross (the L's upright over its foot, the g's tail through the line) stayed darker than
+   the rest, and the logo looked like pieces laid over each other. Faded as one picture it stays solid. */
+/* It is also invisible for a moment at the very start. The strokes run on their own clocks, and at the
+   restart they snap back to hidden as this snaps back to shown: a frame's difference between the two showed
+   the finished logo for an instant ("it jumps"). Held at nothing across the restart, there is nothing to see. */
+@keyframes logo-loop-fade { 0%, 0.25% { opacity: 0; } 0.6%, 98.67% { opacity: 1; } 100% { opacity: 0; } }
+.wordmark.loop { animation: logo-loop-fade 30s linear infinite; }
+@keyframes logo-loop-s1 { 0%, 0.000% { transform: scaleY(0); opacity: 0; } 1.133%, 98.67% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1); opacity: 1; } }
 .wordmark.loop .s1 { animation: logo-loop-s1 30s ease-out infinite; }
-@keyframes logo-loop-s2 { 0%, 0.867% { transform: scaleY(0); opacity: 0; } 2.067%, 98.67% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
+@keyframes logo-loop-s2 { 0%, 0.867% { transform: scaleY(0); opacity: 0; } 2.067%, 98.67% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1); opacity: 1; } }
 .wordmark.loop .s2 { animation: logo-loop-s2 30s ease-out infinite; }
-@keyframes logo-loop-s3 { 0%, 1.800% { stroke-dashoffset: 1; opacity: 0; } 1.880% { opacity: 1; } 3.133%, 98.67% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes logo-loop-s3 { 0%, 1.800% { stroke-dashoffset: 1; opacity: 0; } 1.880% { opacity: 1; } 3.133%, 98.67% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
 .wordmark.loop .s3 { animation: logo-loop-s3 30s ease-out infinite; }
-@keyframes logo-loop-s4 { 0%, 3.067% { stroke-dashoffset: 1; opacity: 0; } 3.147% { opacity: 1; } 7.667%, 98.67% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes logo-loop-s4 { 0%, 3.067% { stroke-dashoffset: 1; opacity: 0; } 3.147% { opacity: 1; } 7.667%, 98.67% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
 .wordmark.loop .s4 { animation: logo-loop-s4 30s linear infinite; }
-@keyframes logo-loop-s5 { 0%, 3.267% { stroke-dashoffset: 1; opacity: 0; } 3.347% { opacity: 1; } 4.267%, 98.67% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes logo-loop-s5 { 0%, 3.267% { stroke-dashoffset: 1; opacity: 0; } 3.347% { opacity: 1; } 4.267%, 98.67% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
 .wordmark.loop .s5 { animation: logo-loop-s5 30s ease-out infinite; }
-@keyframes logo-loop-s6 { 0%, 4.133% { stroke-dashoffset: 1; opacity: 0; } 4.213% { opacity: 1; } 5.267%, 98.67% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes logo-loop-s6 { 0%, 4.133% { stroke-dashoffset: 1; opacity: 0; } 4.213% { opacity: 1; } 5.267%, 98.67% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
 .wordmark.loop .s6 { animation: logo-loop-s6 30s ease-out infinite; }
-@keyframes logo-loop-s7 { 0%, 5.067% { stroke-dashoffset: 1; opacity: 0; } 5.147% { opacity: 1; } 6.267%, 98.67% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes logo-loop-s7 { 0%, 5.067% { stroke-dashoffset: 1; opacity: 0; } 5.147% { opacity: 1; } 6.267%, 98.67% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
 .wordmark.loop .s7 { animation: logo-loop-s7 30s ease-out infinite; }
-@keyframes logo-loop-s8 { 0%, 6.067% { stroke-dashoffset: 1; opacity: 0; } 6.147% { opacity: 1; } 7.067%, 98.67% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes logo-loop-s8 { 0%, 6.067% { stroke-dashoffset: 1; opacity: 0; } 6.147% { opacity: 1; } 7.067%, 98.67% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
 .wordmark.loop .s8 { animation: logo-loop-s8 30s ease-out infinite; }
-@keyframes logo-loop-s9 { 0%, 6.867% { stroke-dashoffset: 1; opacity: 0; } 6.947% { opacity: 1; } 7.733%, 98.67% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes logo-loop-s9 { 0%, 6.867% { stroke-dashoffset: 1; opacity: 0; } 6.947% { opacity: 1; } 7.733%, 98.67% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
 .wordmark.loop .s9 { animation: logo-loop-s9 30s ease-out infinite; }
 .welcome-by { animation-delay: 2.7s; }
 
@@ -1436,6 +1543,10 @@ html[data-season] .cfo-panel { background: color-mix(in srgb, var(--bg) 82%, tra
 .setup-card > .sub { max-width: 92ch; }
 .setup .row small, .setup .pay-calendar small { font-size: 0.86em; }
 .setup-sub { font-size: 1.25em; font-weight: 600; margin: 1.4em 0 0.3em; }
+.setup-tick { display: flex; flex-direction: row; gap: 0.6em; align-items: flex-start; }
+.setup-tick input { width: auto; flex: none; margin-top: 0.25em; }
+.setup-tick span { display: grid; gap: 2px; }
+.setup-tick small { opacity: 0.7; }
 .setup .add-grid { grid-template-columns: repeat(auto-fit, minmax(15em, 1fr)); gap: 1em 1.1em; align-items: start; margin-top: 1em; }
 .setup .add-grid label, .setup .field { font-size: 0.9em; gap: 0.4em; }
 .setup input, .setup select, .setup textarea { font-size: 1em; border-radius: 0.6em; }
@@ -1930,7 +2041,7 @@ button.danger:disabled { opacity: 0.45; }
 .check-idea p { margin: 0 0 4px; }
 .check-line { width: 100%; padding: 6px 0; gap: 10px; }
 .check-line .sub { flex: none; width: 56px; }
-.add-account { display: grid; gap: 8px; padding: 14px 0 2px; border-top: 1px solid var(--line); margin-top: 8px; justify-items: start; }
+.add-account { display: grid; gap: 8px; padding: 2px 0 14px; border-bottom: 1px solid var(--line); margin-bottom: 8px; justify-items: start; }
 .add-account small { color: var(--ink2); }
 .add-account.open { justify-items: stretch; }
 @media (max-width: 760px) { .edit-fields { grid-template-columns: 1fr; } }

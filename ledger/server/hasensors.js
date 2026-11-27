@@ -22,6 +22,7 @@
 //
 //   settings   ha_sensors (a JSON list of the ids switched on), alert_low (shared with the email alerts)
 import { getSetting, setSetting, iso } from './db.js';
+import { periodOf } from './period.js';
 import { findAlerts } from './alerts.js';
 import { outlook } from './cashflow.js';
 import { haOffered, haPublish } from './haai.js';
@@ -48,7 +49,7 @@ function values() {
   let alerts = [], o = null, s = null;
   try { alerts = findAlerts(); } catch { /* nothing to report */ }
   try { o = outlook(); } catch { /* no accounts yet */ }
-  try { s = summary ? summary(iso(new Date()).slice(0, 7)) : null; } catch { /* no month yet */ }
+  try { s = summary ? summary(periodOf()) : null; } catch { /* no month yet */ }
   const has = !!(o && o.accounts.length);
   const due = alerts.filter((a) => a.key.startsWith('due:')).length;
   const over = alerts.filter((a) => a.key.startsWith('over:')).length;

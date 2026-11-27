@@ -5,8 +5,19 @@
 A household budget you run yourself. One small server, one SQLite file, no account with anyone:
 your finances stay on a machine you own.
 
+<p align="center">
+  <a href="https://github.com/moeckjeremy/ledger-home-finance/releases/latest"><img src="https://img.shields.io/github/v/release/moeckjeremy/ledger-home-finance?label=release" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/platforms-aarch64%20%7C%20amd64-555" alt="Runs on 64-bit ARM and PC">
+  <img src="https://img.shields.io/badge/Home%20Assistant-App-18bcf2" alt="A Home Assistant app">
+  <img src="https://img.shields.io/badge/Docker-ready--made%20image-2496ed" alt="A ready-made Docker image">
+</p>
+
 <p align="center"><a href="https://ledger-demo-ad6a24.fly.dev"><img src="docs/readme/try.svg" width="260" alt="Try the live demo"></a></p>
 <p align="center"><sub>Nothing to install or sign up for. Every figure in the demo is made up, and whatever you change is wiped within the hour.<br>Bank sync, uploads and AI are switched off there; Ask your CFO shows example answers. It may take a couple of seconds to wake.</sub></p>
+
+<p align="center"><a href="https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fmoeckjeremy%2Fledger-home-finance"><img src="https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg" alt="Add this repository to my Home Assistant"></a></p>
+
+<p align="center"><a href="#what-it-does">What it does</a> · <a href="#home-assistant-app">Home Assistant</a> · <a href="#docker-a-nas-a-home-server-or-your-own-computer">Docker</a> · <a href="#updating-a-docker-install">Updating</a> · <a href="#what-leaves-your-machine">What leaves your machine</a> · <a href="#license">License</a></p>
 
 ![Ledger's dashboard: what is left before payday, what is in checking, and spending against budget](docs/readme/dashboard.jpg)
 
@@ -101,13 +112,18 @@ Set a password in Settings before the port is reachable by anyone you would not 
 to. Ledger has no TLS of its own: put it behind a reverse proxy, a VPN such as Tailscale, or a
 tunnel with its own sign-in if you want to reach it from outside your home.
 
-### Home Assistant add-on
+### Home Assistant app
 
-Add this repository to the add-on store (Settings, Add-ons, Add-on Store, ⋮, Repositories), install
-**Ledger**, start it, and open it from the sidebar. It arrives ready-made for 64-bit machines (ARM and
-PC); a 32-bit Home Assistant, such as one on an older Raspberry Pi, will not list it. See [the add-on's notes](ledger/DOCS.md).
+Home Assistant calls these apps now; they used to be called add-ons.
 
-The add-on asks for permission to call Home Assistant's API. Home Assistant offers no narrower permission
+[![Add this repository to my Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fmoeckjeremy%2Fledger-home-finance)
+
+Press the button, or add this repository to the app store by hand (Settings, Apps, App store, ⋮,
+Repositories, and paste this page's address). Then search the store for **Ledger**, install it, start
+it, and open it from the sidebar. It arrives ready-made for 64-bit machines (ARM and
+PC); a 32-bit Home Assistant, such as one on an older Raspberry Pi, will not list it. See [the app's notes](ledger/DOCS.md).
+
+The app asks for permission to call Home Assistant's API. Home Assistant offers no narrower permission
 than that, so here is exactly what Ledger does with it: nothing at all unless you choose "The AI in your
 Home Assistant" in Ledger's Settings, or one of your Home Assistant calendars for a side gig paid by booked
 sessions, or switch on one of its optional sensors. Then it makes four calls and no others. Three only
@@ -137,7 +153,7 @@ Node 24 or newer (it uses Node's built-in SQLite).
 | `PORT`, `HOST` | Where to listen. 4317 and all addresses in the container. |
 | `TZ` | Your time zone, so "today" and paydays are right. If it is not set, Ledger uses the time zone of the first browser that opens it. |
 | `LEDGER_FRESH=1` | Start empty with the setup guide, in place of sample data. |
-| `LEDGER_INGRESS=1` | Home Assistant add-on mode: trust requests from the Supervisor, allow framing. |
+| `LEDGER_INGRESS=1` | Home Assistant app mode: trust requests from the Supervisor, allow framing. |
 | `LEDGER_SETUP_CODE` | For a copy you host for another household: a one-time code they use to claim it. |
 | `LEDGER_AI_KEY`, `LEDGER_AI_MONTHLY_LIMIT`, `LEDGER_AI_MODEL` | An Anthropic key the host pays for on such a copy, with a monthly ceiling. |
 

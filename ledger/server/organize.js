@@ -56,7 +56,7 @@ const dirOf = (body) => (body?.dir === 'up' ? -1 : body?.dir === 'down' ? 1 : 0)
 const send = (res, r) => (r.error ? res.status(r.status || 400).json({ error: r.error }) : res.json(r));
 
 // The kinds of account the Accounts page lists together.
-const KINDS = [['checking', 'savings'], ['investment'], ['hsa'], ['credit'], ['auto', 'loan', 'mortgage'], ['insurance']];
+const KINDS = [['checking', 'savings'], ['investment'], ['hsa'], ['property'], ['credit'], ['auto', 'loan', 'mortgage'], ['insurance']];
 const kindOf = (type) => { const i = KINDS.findIndex((k) => k.includes(type)); return i < 0 ? type : i; };
 
 export function installOrganize(app) {

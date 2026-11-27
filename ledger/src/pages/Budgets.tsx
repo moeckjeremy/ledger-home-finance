@@ -1,6 +1,7 @@
 import { CatIcon, EmojiPick } from '../icons';
 import { useEffect, useState } from 'react';
-import { api, forgetLoaded, money, monthLong, useData } from '../lib';
+import { api, budgetStartDay, currentPeriod, forgetLoaded, money, monthLong, periodLong, useData } from '../lib';
+import { BudgetMonth, budgetDayWords } from '../BudgetMonth';
 import { Fold, Meter, Modal, More, Skeleton } from '../ui';
 import { BudgetSuggest } from './Setup';
 import { ZeroGuide } from './ZeroGuide';
@@ -213,7 +214,7 @@ function Organise({ cat, own, cats, onClose, onDone, onRemove }: { cat: any; own
   );
 }
 
-const thisMonth = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+const thisMonth = () => currentPeriod();   // the budget month running today (the calendar month unless the start day was moved)
 const monthAfter = (m: string) => { const [y, mo] = m.split('-').map(Number); return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}`; };
 const nameOf = (m: string) => monthLong(m).split(' ')[0];
 
@@ -327,10 +328,10 @@ export default function Budgets({ month: chosen }: { month: string }) {
       {note && <p className="sub" role="status">{note}</p>}
       {planning ? (
         <section className="card plan-ahead" data-go="plan-ahead-on">
-          <div className="card-head"><h2>Planning {monthLong(coming)}</h2><button className="link" onClick={() => setAhead(false)}>Back to {nameOf(now)}</button></div>
+          <div className="card-head"><h2>Planning {periodLong(coming)}</h2><button className="link" onClick={() => setAhead(false)}>Back to {nameOf(now)}</button></div>
           {zeroNow
             ? <p className="sub first">You are handing out money for {nameOf(coming)}. "To be assigned" is what you have left today, so anything beyond it is waiting on {nameOf(coming)}'s income. {nameOf(now)}'s amounts are not changed.</p>
-            : <p className="sub first">Amounts you type here start on {nameOf(coming)} 1 and stay until you change them. {nameOf(now)}'s budget is not touched. A category you leave alone keeps the amount it has now.</p>}
+            : <p className="sub first">Amounts you type here start on {nameOf(coming)} {budgetStartDay()} and stay until you change them. {nameOf(now)}'s budget is not touched. A category you leave alone keeps the amount it has now.</p>}
           {!zeroNow && s.categories.some((c: any) => c.planned) && <p style={{ margin: 0 }}><button className="link" onClick={async () => { try { await api(`/api/budget-plan?month=${coming}`, { method: 'DELETE' }); forgetLoaded(); reload(); } catch (e: any) { setNote(e.message); } }}>Start {nameOf(coming)} over from {nameOf(now)}'s amounts</button></p>}
         </section>
       ) : chosen === now ? (
@@ -436,6 +437,7 @@ export default function Budgets({ month: chosen }: { month: string }) {
       )}
       {organising && <Organise cat={organising} own={myGroups} cats={s.categories} onClose={() => setOrganising(null)} onDone={(n) => { setOrganising(null); if (n) setNote(n); changed(); }} onRemove={() => removeCategory(organising)} />}
       {z && !planning && <ZeroSwitch z={z} onChanged={reload} />}
+      {!planning && <Fold id="budget-startday" title="When your budget month starts" note={budgetDayWords(budgetStartDay())}><BudgetMonth /></Fold>}
     </div>
   );
 }

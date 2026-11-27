@@ -15,7 +15,7 @@ import { db, getSetting, setSetting } from './db.js';
 
 export const hideNames = () => getSetting('ai_hide_names') === '1';
 
-const KINDS = { checking: 'Checking account', savings: 'Savings account', credit: 'Credit card', mortgage: 'Mortgage', auto: 'Car loan', loan: 'Loan', investment: 'Investment account', hsa: 'Health savings account', insurance: 'Insurance policy', cash: 'Cash account' };
+const KINDS = { checking: 'Checking account', savings: 'Savings account', credit: 'Credit card', mortgage: 'Mortgage', auto: 'Car loan', loan: 'Loan', investment: 'Investment account', hsa: 'Health savings account', insurance: 'Insurance policy', cash: 'Cash account', property: 'Property' };
 // The app's own wording for an account nobody's bank reported: nothing to hide.
 const OURS = new Set(['added by you', 'kept by hand', 'cash']);
 

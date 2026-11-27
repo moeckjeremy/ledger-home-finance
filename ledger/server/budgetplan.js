@@ -8,12 +8,13 @@
 //
 // The zero-based mode needs none of this: its amounts are already kept month by month (server/zero.js).
 import { db } from './db.js';
+import { periodOf } from './period.js';
 import { settleBudgets } from './rollover.js';
 
 db.exec('CREATE TABLE IF NOT EXISTS budget_plan (category_id INTEGER NOT NULL, month TEXT NOT NULL, budget REAL NOT NULL, PRIMARY KEY (category_id, month))');
 
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
-const thisMonth = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+const thisMonth = () => periodOf();   // the budget month now running (server/period.js)
 const add = (m, n) => { const [y, mo] = m.split('-').map(Number); const t = y * 12 + (mo - 1) + n; return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, '0')}`; };
 
 /** Plans whose month has arrived become the standing budgets. Cheap when there is nothing due. */

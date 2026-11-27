@@ -70,6 +70,22 @@ export function installCatSuggest(app) {
     });
   });
 
+  // The purchases themselves, shop by shop, for someone who would rather look and file them by hand
+  // (the owner, 2026-11-27: there was "no clear way to access these particular purchases").
+  app.get('/api/categories/other', (_req, res) => {
+    const other = otherId();
+    if (!other) return res.json({ shops: [] });
+    const rows = db.prepare(`SELECT t.id, t.date, t.amount, t.merchant, a.name account FROM transactions t LEFT JOIN accounts a ON a.id = t.account_id
+      WHERE t.category_id = ? AND t.amount < 0 AND t.merchant != '' AND t.waiting = 0 AND ${NOT_SPLIT} ORDER BY t.date DESC, t.id DESC`).all(other);
+    const by = new Map();
+    for (const r of rows) {
+      if (!by.has(r.merchant)) by.set(r.merchant, { merchant: r.merchant, count: 0, total: 0, last: r.date, purchases: [] });
+      const g = by.get(r.merchant); g.count++; g.total += -r.amount;
+      if (g.purchases.length < 40) g.purchases.push({ id: r.id, date: r.date, amount: -r.amount, account: r.account || '' });
+    }
+    res.json({ shops: [...by.values()].map((g) => ({ ...g, total: Math.round(g.total * 100) / 100 })).sort((a, b) => b.total - a.total) });
+  });
+
   app.post('/api/categories/suggest', async (_req, res) => {
     if (!apiKey() && !viaHa()) return res.status(400).json({ error: limitMessage() || 'Suggesting categories needs the AI features switched on in Settings.' });
     const rows = inOther().slice(0, MAX);

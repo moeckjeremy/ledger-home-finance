@@ -30,7 +30,7 @@ const WINDOW = 5 * 60 * 1000;
 const ALLOWED = [
   /^\/transactions(\/\d+(\/(income|leave-out|refund|split|unsplit))?|\/categorize|\/deduct|\/restore)?$/,
   /^\/transfers$/, /^\/undo$/,
-  /^\/accounts(\/\d+(\/(balance|budget|move|name|owner|statement|type))?)?$/,
+  /^\/accounts(\/\d+(\/(balance|budget|move|name|owner|statement|type|value-link|depreciate))?)?$/,
   /^\/categories(\/\d+(\/(aside|hide|merge|move|place))?)?$/,
   /^\/category-groups(\/\d+(\/move)?)?$/,
   /^\/budget-plan$/, /^\/zero(\/(assign|fill|move|reset))?$/,
@@ -41,11 +41,13 @@ const ALLOWED = [
   /^\/gig(\/more|\/jobs(\/\d+|\/match)?)?$/, /^\/gigs(\/\d+)?$/,
   /^\/deductions(\/\d+)?$/, /^\/deposits\/review$/, /^\/rules\/forget$/,
   /^\/tax\/(more|on|preparer|hints\/(answer|ask|asked|clear|use)|pack\/notes(\/[\w-]+)?)$/,
-  /^\/settings$/, /^\/statements\/remind$/, /^\/ai\/(names|private)$/, /^\/recap\/refresh$/,
+  /^\/highlight\/(seen|ignore|another)$/, /^\/vehicles\/\d+\/odometer$/, /^\/budget-month$/, /^\/settings$/, /^\/statements\/remind$/, /^\/ai\/(names|private)$/, /^\/recap\/refresh$/,
   /^\/setup\/(account|done|budgets\/(apply|suggest))$/,
 ];
 // Reading these would reach another site or hand over something the demo shouldn't.
-const NO_READ = [/^\/gig\/pay/, /^\/repo/, /^\/tax\/docs/];
+// Each ends at a slash or the end, so "/repo" does not also catch "/reports" (it did for a day: the demo's
+// Reports page was refused).
+const NO_READ = [/^\/gig\/pay(\/|$)/, /^\/repo(\/|$)/, /^\/fly(\/|$)/, /^\/tax\/docs(\/|$)/];
 
 let changes = 0, firstChange = 0;
 // Visits, for whoever runs the demo (2026-11-27). A visit is the page itself being opened from an address
@@ -63,6 +65,18 @@ function reset(why) {
   try { db.close(); } catch { /* already closed */ }
   for (const f of [dbPath, `${dbPath}-wal`, `${dbPath}-shm`]) fs.rmSync(f, { force: true });
   process.exit(0);
+}
+
+/**
+ * Which version the demo is running and when it was last rebuilt, for its banner (the owner: "Running
+ * Version XXXX. Updated XXXX"). The version is the one the image was built as (LEDGER_RELEASE); the date is
+ * when its pages were built, read from the built page's own file.
+ */
+export function demoBuild() {
+  let updated = '';
+  try { updated = iso(fs.statSync(new URL('../dist/index.html', import.meta.url)).mtime); } catch { /* run from source: no built page */ }
+  const v = process.env.LEDGER_RELEASE || '';
+  return { version: /^\d+\.\d+\.\d+$/.test(v) ? v : '', updated };
 }
 
 /** When the demo will next be wiped, for the banner. Null while nothing has been changed. */
