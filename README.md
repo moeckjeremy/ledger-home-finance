@@ -15,7 +15,7 @@ your finances stay on a machine you own.
 <p align="center"><a href="https://ledger-demo-ad6a24.fly.dev"><img src="docs/readme/try.svg" width="260" alt="Try the live demo"></a></p>
 <p align="center"><sub>Nothing to install or sign up for. Every figure in the demo is made up, and whatever you change is wiped within the hour.<br>Bank sync, uploads and AI are switched off there; Ask your CFO shows example answers. It may take a couple of seconds to wake.</sub></p>
 
-<p align="center"><a href="https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fmoeckjeremy%2Fledger-home-finance"><img src="https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg" alt="Add this repository to my Home Assistant"></a></p>
+<p align="center"><a href="https://my.home-assistant.io/redirect/supervisor_addon/?addon=8b82984f_ledger&repository_url=https%3A%2F%2Fgithub.com%2Fmoeckjeremy%2Fledger-home-finance"><img src="https://my.home-assistant.io/badges/supervisor_addon.svg" alt="Show Ledger in my Home Assistant"></a></p>
 
 <p align="center"><a href="#what-it-does">What it does</a> · <a href="#home-assistant-app">Home Assistant</a> · <a href="#docker-a-nas-a-home-server-or-your-own-computer">Docker</a> · <a href="#updating-a-docker-install">Updating</a> · <a href="#what-leaves-your-machine">What leaves your machine</a> · <a href="#license">License</a></p>
 
@@ -114,11 +114,12 @@ tunnel with its own sign-in if you want to reach it from outside your home.
 
 ### Home Assistant app
 
-[![Add this repository to my Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fmoeckjeremy%2Fledger-home-finance)
+[![Show Ledger in my Home Assistant](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?addon=8b82984f_ledger&repository_url=https%3A%2F%2Fgithub.com%2Fmoeckjeremy%2Fledger-home-finance)
 
-Press the button, or add this repository to the app store by hand (Settings, Apps, App store, ⋮,
-Repositories, and paste this page's address). Then search the store for **Ledger**, install it, start
-it, and open it from the sidebar. It arrives ready-made for 64-bit machines (ARM and
+Press the button: it opens Ledger's own page in your Home Assistant, offering to add this repository
+first if you haven't already. Press Install there, start it, and open it from the sidebar. Or do it by
+hand: Settings, Apps, App store, ⋮, Repositories, paste this page's address, then search the store for
+**Ledger**. It arrives ready-made for 64-bit machines (ARM and
 PC); a 32-bit Home Assistant, such as one on an older Raspberry Pi, will not list it. See [the app's notes](ledger/DOCS.md).
 
 The app asks for permission to call Home Assistant's API. Home Assistant offers no narrower permission
