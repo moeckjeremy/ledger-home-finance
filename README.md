@@ -114,8 +114,6 @@ tunnel with its own sign-in if you want to reach it from outside your home.
 
 ### Home Assistant app
 
-Home Assistant calls these apps now; they used to be called add-ons.
-
 [![Add this repository to my Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fmoeckjeremy%2Fledger-home-finance)
 
 Press the button, or add this repository to the app store by hand (Settings, Apps, App store, ⋮,
