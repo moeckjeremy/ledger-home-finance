@@ -118,8 +118,9 @@ tunnel with its own sign-in if you want to reach it from outside your home.
 
 Press the button: it opens Ledger's own page in your Home Assistant, offering to add this repository
 first if you haven't already. Press Install there, start it, and open it from the sidebar. Or do it by
-hand: Settings, Apps, App store, ⋮, Repositories, paste this page's address, then search the store for
-**Ledger**. It arrives ready-made for 64-bit machines (ARM and
+hand: in Home Assistant go to Settings, Apps, Install app, and type **Ledger** in the search bar. If it
+isn't listed, add this repository first (the ⋮ menu there, Repositories, paste this page's address) and
+search again. It arrives ready-made for 64-bit machines (ARM and
 PC); a 32-bit Home Assistant, such as one on an older Raspberry Pi, will not list it. See [the app's notes](ledger/DOCS.md).
 
 The app asks for permission to call Home Assistant's API. Home Assistant offers no narrower permission
