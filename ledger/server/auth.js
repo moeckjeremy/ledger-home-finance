@@ -3,6 +3,7 @@
 import { demoBuild, demoMode, demoResetAt } from './demo.js';
 import { currency } from './money.js';
 import { startDay } from './period.js';
+import { logoVersion } from './logos.js';
 import crypto from 'node:crypto';
 import os from 'node:os';
 import fs from 'node:fs';
@@ -152,6 +153,7 @@ export function installAuth(app) {
       // "Ledger should be starting with standard background"). A copy starts on the scenes only where its
       // setting `start_look` says 'auto', which is set on the owner's own copy and nowhere else.
       currency: currency(),
+      logoV: logoVersion(),   // changes when the logo source changes, so browsers fetch the pictures again
       budgetDay: startDay(),   // the day a budget month starts (server/period.js); 1 unless changed
       look: !process.env.LEDGER_SETUP_CODE && getSetting('start_look') === 'auto' ? 'auto' : 'none',
       // A family copy's sign-in screen offers "Forgot your password?" (a reset code from whoever runs the copies).

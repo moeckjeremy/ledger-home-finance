@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.37
+
+- Sharper logos, if you want them. Without a key, a shop's logo is the small icon from its website.
+  Settings, "AI recap and logos", "Sharper logos" now takes a free Logo.dev key of your own, and with
+  one Ledger shows proper company logos instead. It walks you through getting the key and checks it
+  before keeping it. What it sends is each shop's website name and your key, to Logo.dev; nothing about
+  your purchases. Nothing changes unless you add a key.
+
 ## 0.1.36
 
 - Home Assistant now calls add-ons apps, and Ledger's pages and notes say so too. Nothing about

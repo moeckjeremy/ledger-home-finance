@@ -54,6 +54,11 @@ const CUSTOM: [RegExp, string][] = [
 
 // Websites Claude has identified for merchants the lists above don't cover (server/logofinder.js), by lower-case name.
 // `chosen` holds the ones you set yourself, which win over everything else.
+// The number on every logo's address: "2", plus the server's own mark when the logo source has changed
+// (a household added its Logo.dev key), so a browser asks for the pictures again.
+let version = '';
+export function setLogoVersion(v?: string) { version = v ? String(v).replace(/[^0-9a-z]/gi, '') : ''; similarCache.clear(); }
+const V = () => (version ? `2-${version}` : '2');
 let found: Record<string, string> = {};
 let chosen: Record<string, string> = {};
 export function setFoundLogos(maps: { found: Record<string, string>; chosen: Record<string, string> }) { found = maps.found || {}; chosen = maps.chosen || {}; similarCache.clear(); }
@@ -103,20 +108,20 @@ export function logoSources(name: string | null | undefined, key?: string, also:
   const n = (name || '').toLowerCase();
   const out: string[] = [];
   // An account's own choice is kept under a key that doesn't change when the account is renamed.
-  if (key && chosen[key.toLowerCase()]) out.push(`/api/logo/${chosen[key.toLowerCase()]}?v=2`);
+  if (key && chosen[key.toLowerCase()]) out.push(`/api/logo/${chosen[key.toLowerCase()]}?v=${V()}`);
   // Other names to try first (an account's own name, and what its payments are called), so an
   // account shows the logo already set or found for the transactions that go with it.
   for (const other of also) for (const src of logoSources(other)) if (!out.includes(src)) out.push(src);
   // (?v= changes when the logo source does, so browsers fetch the better pictures and don't keep old ones for a month.)
   const add = (src: string | null | undefined) => { if (src && !out.includes(src)) out.push(src); };
-  if (chosen[n]) add(`/api/logo/${chosen[n]}?v=2`);
+  if (chosen[n]) add(`/api/logo/${chosen[n]}?v=${V()}`);
   // One you set for a similar name comes next, ahead of the app's own guesses.
-  else if (n) { const yours = similar(n, true); if (yours) add(`/api/logo/${yours}?v=2`); }
+  else if (n) { const yours = similar(n, true); if (yours) add(`/api/logo/${yours}?v=${V()}`); }
   for (const [pattern, file] of CUSTOM) if (pattern.test(n)) add(`/logos/${file}`);
   const domain = logoDomain(n);
-  if (domain) add(`/api/logo/${domain}?v=2`);
+  if (domain) add(`/api/logo/${domain}?v=${V()}`);
   // Nothing of its own: borrow the logo found for a similar name.
-  if (!out.length && n) { const theirs = similar(n, false); if (theirs) add(`/api/logo/${theirs}?v=2`); }
+  if (!out.length && n) { const theirs = similar(n, false); if (theirs) add(`/api/logo/${theirs}?v=${V()}`); }
   return out;
 }
 

@@ -460,7 +460,7 @@ export default function About() {
         <p><b>A home's value</b>, if you set it to be looked up each month, sends that home's address and your own RentCast key to RentCast once a month. A property kept by hand sends nothing, and Ledger never asks for its address.</p>
         <p><b>A vehicle's VIN</b>, only if you press "Fill these in from the VIN" when setting up a vehicle: the VIN you type goes to the U.S. government's vehicle safety agency (NHTSA), whose free decoder returns the year, make, model and type. Ledger doesn't keep the VIN.</p>
         <p><b>Investment prices</b>, if you switch them on, are asked of Yahoo Finance by ticker symbol only: never your share counts or values.</p>
-        <p><b>Company logos</b> are fetched by the company's web address only, never with anything about your purchases. <a href="https://logo.dev" target="_blank" rel="noreferrer">Logos provided by Logo.dev</a>.</p>
+        <p><b>Company logos</b> are fetched by the company's web address only, never with anything about your purchases. For cleaner ones, Settings, "AI recap and logos", "Sharper logos" takes a free Logo.dev key of your own; the same web address then goes to Logo.dev with your key. <a href="https://logo.dev" target="_blank" rel="noreferrer">Logos provided by Logo.dev</a>.</p>
         <p><b>Checking for a newer version.</b> If you run Ledger yourself with Docker, it looks at its public project page on GitHub once a day for a newer version, and tells you on the dashboard when there is one. Nothing about your household is sent. Settings, "Updates" switches it off. A copy hosted for you, or one inside Home Assistant, doesn't do this: those are updated another way.</p>
       </>,
       <>

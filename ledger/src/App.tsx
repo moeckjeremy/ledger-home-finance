@@ -5,7 +5,7 @@ import { flushSync } from 'react-dom';
 import { useTaxes, setTaxes, setCurrency, setBudgetDay, periodLong, periodShort } from './lib';
 import { api, lastLoaded, monthLong, noteLoaded, useData, handoff, monthShort, busyFor, midSession } from './lib';
 import { IconDialog, LogoDialog, UndoToast, reducedMotion } from './ui';
-import { setFoundLogos } from './logos';
+import { setFoundLogos, setLogoVersion } from './logos';
 import Dashboard from './pages/Dashboard';
 import Cfo, { CfoSeal } from './pages/Cfo';
 import Insight, { INSIGHTS, type InsightView } from './pages/Insight';
@@ -325,6 +325,7 @@ export default function App() {
 
 function Gate() {
   const { data: auth, reload: reloadAuth } = useData('/api/auth/status');
+  if (auth) setLogoVersion((auth as any).logoV);
   if (auth) setBudgetDay((auth as any).budgetDay);   // which day a budget month starts, before any month is named
   if (auth) setCurrency((auth as any).currency);   // before the pages below draw a single amount
   // Plays once, right after signing in.

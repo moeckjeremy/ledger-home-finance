@@ -804,6 +804,8 @@ html[data-season] .mail-when .days button.on:not(.primary):not(.link) { backgrou
 .other-unsaved { display: block; color: var(--accent); margin: -2px 0 8px; }
 .other-shop-list { margin: 0 0 8px 12px; padding-left: 10px; border-left: 2px solid var(--line); }
 .other-shop-list > small { opacity: 0.7; }
+.sharper-logos { display: grid; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.sharper-logos small { opacity: 0.8; }
 .dep-sum { margin: 6px 0 10px; }
 .dep-sum .row small { white-space: normal; overflow: visible; }
 .dep-sum .row .num { white-space: nowrap; }

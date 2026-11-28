@@ -81,6 +81,9 @@ Then open `http://localhost:4317` on that machine, or `http://<its address>:4317
 on your network. A new copy starts with sample data so you can look around; your first bank
 connection or import replaces it. Your data is kept in the Docker volume `ledger-data`.
 
+New to Docker? [A two-page printable guide](docs/Ledger-on-your-computer.pdf) walks through installing it
+on a Windows PC or a Mac with pictures, and reaching Ledger from your phone.
+
 On your own computer Ledger only works while the computer is on and awake: bank syncs, the summary
 email and alerts wait until it is.
 
@@ -166,7 +169,7 @@ Nothing, unless you switch it on:
 - **AI features**: what each one sends to Anthropic is described in the app (About, and Settings,
   "What has been sent to Claude"). Off until you add a key.
 - **A booking calendar**, if you connect one for a side gig paid by the session: Ledger fetches that calendar's iCal address every few hours. Nothing is sent to it.
-- **Logos**: to show a shop's logo, Ledger asks an icon service (Google's, then DuckDuckGo's) for the icon of that shop's website, once per shop. This happens with or without an AI key, and can be switched off in Settings, "AI recap and logos"; shops then show as a letter.
+- **Logos**: to show a shop's logo, Ledger asks an icon service (Google's, then DuckDuckGo's) for the icon of that shop's website, once per shop. This happens with or without an AI key, and can be switched off in Settings, "AI recap and logos"; shops then show as a letter. If you paste a free [Logo.dev](https://logo.dev) key of your own under "Sharper logos" there, Ledger asks Logo.dev first, sending the same website name and your key, and shows proper company logos. The app ships with no key.
 - **Investment prices**: ticker symbols only, off until switched on.
 - **Summary email and alerts**: through a mail account you set up.
 

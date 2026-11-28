@@ -22,6 +22,7 @@ export const JUST_ADDED: [title: string, text: string, more?: { date: string; go
 
 export const UPDATES: [date: string, items: string[]][] = [
   ['2026-11-27', [
+    'Sharper logos: Settings, "AI recap and logos" has a place for a free Logo.dev key of your own, which swaps the small website icons for proper company logos.',
     'Your budget month can start on a day other than the 1st, such as payday on the 20th: Budgets, "When your budget month starts" (or Settings, "Budget month"). Budgets, what is spent and left, carry-over, reports and the recap follow it; taxes and bill dates stay on the calendar.',
     'The card about purchases filed under "Other" has "Show them", which lists them shop by shop so you can file a shop yourself, and "Hide for good" if you would rather leave them be.',
     '"Whose is what" on the Accounts page can show which accounts are behind each person\'s figures, and a tap takes you to one.',

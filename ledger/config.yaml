@@ -1,7 +1,7 @@
 # Ledger as a Home Assistant app (what Home Assistant used to call an add-on). Home Assistant downloads it ready-made (the image below, at this
 # version), so nothing is built on your own machine.
 name: Ledger
-version: "0.1.36"
+version: "0.1.37"
 image: "ghcr.io/moeckjeremy/ledger-home-finance-addon"
 slug: ledger
 description: A private household budget, bills, debt and tax-estimate app that keeps its data on your own machine

@@ -1366,6 +1366,7 @@ function AiRecap() {
       {note && <p className="good" role="status">{note}</p>}
       {err && <p className="error" role="alert">{err}</p>}
       <LogoFetch />
+      <SharperLogos />
       {s.hasKey && <LogoFinder />}
     </section>
   );
@@ -1459,6 +1460,65 @@ export function LogoFetch() {
     <div className="logo-fetch">
       <label className="row check"><span className="grow wrap">Fetch shops' logos from the internet<small>To show a logo, Ledger asks an icon service (Google's, then DuckDuckGo's) for the icon of that shop's website, once per shop. That tells the service which shops' sites were looked up, and nothing else. Off, shops show as a letter; logos already fetched stay.</small></span>
         <input type="checkbox" checked={on} onChange={async (e) => { await api('/api/settings', { method: 'PUT', body: { logos_off: e.target.checked ? '0' : '1' } }); forgetLoaded(); reload(); }} /></label>
+    </div>
+  );
+}
+
+/**
+ * "Sharper logos": a household's own free Logo.dev key (server/logos.js). With one, shops' logos come from
+ * Logo.dev's database of proper company logos first. The key is theirs, is checked before it is kept, and is
+ * never shown again. Without one nothing changes.
+ */
+function SharperLogos() {
+  const { data: d, reload } = useData<{ hasKey: boolean; fromHost: boolean; refresh: { running: boolean; tried: number; better: number; total: number } }>('/api/logos/source');
+  const [key, setKey] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [note, setNote] = useState('');
+  if (!d) return null;
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault(); setBusy(true); setErr(''); setNote('');
+    try {
+      await api('/api/logos/key', { method: 'PUT', body: { key } });
+      setKey(''); setNote('Saved. The logos Ledger already has are being replaced a few at a time; open the app again in a few minutes to see them.');
+      forgetLoaded(); reload();
+    } catch (e: any) { setErr(e.message); }
+    setBusy(false);
+  };
+  const remove = async () => {
+    setErr(''); setNote('');
+    try { await api('/api/logos/key', { method: 'DELETE' }); setNote('Removed. The logos already fetched stay; new ones come from the free icon services again.'); reload(); } catch (e: any) { setErr(e.message); }
+  };
+  const credit = <small>Logos provided by <a href="https://logo.dev" target="_blank" rel="noopener noreferrer">Logo.dev</a>.</small>;
+  return (
+    <div className="sharper-logos" data-go="sharper-logos">
+      <b>Sharper logos</b>
+      {d.fromHost ? (
+        <p className="sub">Already on for this copy: whoever hosts it has set it up, so shops' logos come from Logo.dev's database of company logos. {credit}</p>
+      ) : d.hasKey ? (
+        <>
+          <p className="sub">On. Shops' logos come from Logo.dev's database of proper company logos first, and from the free icon services only when it has none. {credit}</p>
+          {d.refresh.running && <p className="sub" role="status">Replacing the logos Ledger already has: {d.refresh.tried} of {d.refresh.total} checked so far. <button type="button" className="link" onClick={reload}>Check again</button></p>}
+          {!d.refresh.running && d.refresh.tried > 0 && <p className="sub">Last time, {d.refresh.better} of {d.refresh.tried} logos were replaced with Logo.dev's.</p>}
+          <p style={{ margin: 0 }}><button type="button" className="link" onClick={remove}>Remove my Logo.dev key</button></p>
+        </>
+      ) : (
+        <>
+          <p className="sub">Optional. Without it, a shop's logo is the small icon from its website. With a free Logo.dev account of your own, Ledger gets proper company logos instead, which look much cleaner.</p>
+          <ol className="key-guide">
+            <li><a className="button" href="https://www.logo.dev/" target="_blank" rel="noopener noreferrer">Open Logo.dev ↗</a> and make a free account.</li>
+            <li>On its dashboard, copy your <b>publishable key</b> (it usually starts with <code>pk_</code>). Not the secret key.</li>
+            <li>Paste it here.</li>
+          </ol>
+          <form onSubmit={save} noValidate className="token-form">
+            <label className="field grow"><span>Logo.dev publishable key</span><input type="text" value={key} autoComplete="off" spellCheck={false} placeholder="pk_…" onChange={(e) => { setKey(e.target.value.trim()); setErr(''); }} /></label>
+            <button type="submit" className="primary" disabled={busy || key.length < 8}>{busy ? 'Checking…' : 'Save'}</button>
+          </form>
+          <small>What it sends: the website name of each shop (such as kroger.com) and your key, to Logo.dev. Nothing about your purchases or your household. Logo.dev's free plan asks that it be credited, which Ledger does here and in About.</small>
+        </>
+      )}
+      {note && <p className="sub good" role="status">{note}</p>}
+      {err && <p className="error" role="alert">{err}</p>}
     </div>
   );
 }
