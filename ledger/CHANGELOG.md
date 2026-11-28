@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.38
+
+- Your balance on every day ahead. On the Recurring page's calendar, each coming day shows your
+  projected checking balance at the end of that day, worked out from the bills, card payments and
+  paychecks Ledger knows about, with the lowest day pointed out. A tick box takes your usual everyday
+  spending off as well.
+- Test a purchase. Under the calendar, type an amount and a day to see what it would do to the days
+  ahead and whether checking would run low. Nothing is saved.
+- Amounts that change on a day. When you know the rent goes up in March or a raise starts in January,
+  "Its amount is changing" on a bill (Recurring) or a payday (Settings, Paydays) takes the new amount
+  and the day it starts. Nothing changes before that day; from it on, the forecast and the bills
+  calendar use the new figure.
+- Adding a vehicle is one step. Choosing "Lower it a little each month" in "Add an account by hand" now
+  asks its model year, kind, how well the model holds its value and (optionally) the odometer right
+  there, and "Add it" sets everything up. Before, a second panel opened afterwards and asked how its
+  value is kept all over again. A year in the name, such as "2020 RAV4", fills in the model year.
+
 ## 0.1.37
 
 - Sharper logos, if you want them. Without a key, a shop's logo is the small icon from its website.

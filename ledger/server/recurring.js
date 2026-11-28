@@ -2,6 +2,7 @@
 // charges from the same merchant, about a month apart, for a similar amount.
 import { db, iso } from './db.js';
 import { keepForUndo } from './undo.js';
+import { changesOf, billRef } from './changes.js';
 
 // A bill with a month set is charged once a year, in that month.
 if (!db.prepare('PRAGMA table_info(recurrings)').all().some((c) => c.name === 'month')) db.exec('ALTER TABLE recurrings ADD COLUMN month INTEGER');
@@ -279,7 +280,10 @@ export function getRecurrings() {
   const names = new Set(manual.map((r) => r.name.toLowerCase()));
   const found = detect().filter((r) => !names.has(r.name.toLowerCase()) && !ignores.some((i) => i.merchant === r.merchant && close(r.amount, i.amount, 0.3)));
   const links = new Map(db.prepare('SELECT name, url FROM bill_links').all().map((l) => [l.name, l.url]));
-  return [...manual, ...found].map((r) => (links.has(linkKey(r.name)) ? { ...r, pay_url: links.get(linkKey(r.name)) } : r));
+  // Amounts the household said will change from a day (server/changes.js), shown on the bill and used by the forecast.
+  const ahead = changesOf('bill');
+  return [...manual, ...found].map((r) => (links.has(linkKey(r.name)) ? { ...r, pay_url: links.get(linkKey(r.name)) } : r))
+    .map((r) => (ahead.has(billRef(r.name)) ? { ...r, changes: ahead.get(billRef(r.name)) } : r));
 }
 
 // "How often" from the form: '' for monthly or yearly, or 'week:2', 'month:3' with the next due date.

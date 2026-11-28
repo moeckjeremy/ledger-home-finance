@@ -69,7 +69,7 @@ document.addEventListener('change', (e) => { if ((e.target as HTMLElement | null
 // you're typing in a box or have a window open, and at most once a minute in case something goes wrong.
 let loadedBuild = '', updateWaiting = false;
 // (ledgerBusyUntil: set while the phone's camera is open for "Take a photo", so a reload can't throw the picture away.)
-const midTask = () => Date.now() < ((window as any).ledgerBusyUntil || 0) || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '') || !!document.querySelector('.logo-dialog-overlay, .undo-toast, .about-overlay, .cfo-overlay.open, .setup, .tour-layer, .sheet-layer, .add-form, .value-how, .split-form, .statement-check, .outlook-edit, .holding-form, .add-account.open, .bill-rename, .logo-draw, .scan-rows, .other-review .add-actions');
+const midTask = () => Date.now() < ((window as any).ledgerBusyUntil || 0) || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '') || !!document.querySelector('.logo-dialog-overlay, .undo-toast, .about-overlay, .cfo-overlay.open, .setup, .tour-layer, .sheet-layer, .add-form, .bill-cal-test, .change-form, .value-how, .split-form, .statement-check, .outlook-edit, .holding-form, .add-account.open, .bill-rename, .logo-draw, .scan-rows, .other-review .add-actions');
 const takeUpdate = () => {
   if (!updateWaiting || midTask()) return;
   try { const last = Number(sessionStorage.getItem('ledger-updated-at')) || 0; if (Date.now() - last < 60_000) return; sessionStorage.setItem('ledger-updated-at', String(Date.now())); } catch { /* private window: reload anyway */ }

@@ -7,6 +7,7 @@ import { WAITING_DAYS } from './waiting.js';
 import { gig, isGigPay } from './gig.js';
 import { expectedGigPay, gigsWithOwnPay } from './gigpay.js';
 import { bankUpdateExpected, nextReadAt } from './simplefin.js';
+import { changesOf, amountOn, billRef } from './changes.js';
 
 // When each paycheck arrives. `rule` is either "monthdays:15,last" (those days
 // of the month, moved back to Friday when they fall on a weekend) or
@@ -174,8 +175,12 @@ function taxHold() {
   try { return taxHoldSource ? taxHoldSource() : null; } catch { return null; }
 }
 
-export function outlook() {
+// `opts.until` (a date) stretches the same forecast further ahead, for the bills calendar's day-by-day
+// balance (server/billcalendar.js): monthly bills and card payments then repeat each month up to that day.
+// Called with nothing, as the dashboard does, it is exactly what it was.
+export function outlook(opts = {}) {
   const today = iso(new Date());
+  const until = /^\d{4}-\d{2}-\d{2}$/.test(opts.until || '') && opts.until > today ? opts.until : null;
   const est = checkingEstimate();
   const { accounts, posted } = est;
   // Start from the estimate: the posted balance with pending and waiting purchases already taken out.
@@ -185,7 +190,7 @@ export function outlook() {
     ...db.prepare(`SELECT merchant, amount FROM pending_tx WHERE account_id IN (${est.ids}) AND amount < 0`).all(),
     ...db.prepare(`SELECT merchant, amount FROM transactions WHERE waiting = 1 AND account_id IN (${est.ids}) AND amount < 0`).all(),
   ];
-  const limit = addDays(today, 35);
+  const limit = until && until > addDays(today, 35) ? until : addDays(today, 35);
   // Old entries are no use once their month has passed.
   db.prepare('DELETE FROM outlook_amounts WHERE period < ?').run(addDays(today, -62).slice(0, 7));
   db.prepare('DELETE FROM outlook_dates WHERE period < ?').run(addDays(today, -62).slice(0, 7));
@@ -194,6 +199,9 @@ export function outlook() {
   const moved = (kind, name, date) => { const d = setDates.get(`${kind}|${name}|${periodFor(kind, date)}`); return d ? (d < today ? today : d) : null; };
   const setAmounts = new Map(db.prepare('SELECT kind, name, period, amount FROM outlook_amounts').all().map((r) => [`${r.kind}|${r.name}|${r.period}`, r.amount]));
   const yours = (kind, name, date) => setAmounts.get(`${kind}|${name}|${periodFor(kind, date)}`);
+
+  // Amounts the household said will change from a day (server/changes.js): used for anything on or after it.
+  const payAhead = changesOf('pay'), billAhead = changesOf('bill');
 
   // Paychecks.
   const pay = [];
@@ -223,7 +231,9 @@ export function outlook() {
         const note = `${fromClasses.classes} class${fromClasses.classes === 1 ? '' : 'es'}${fromClasses.weekOver ? '' : ' booked so far'}${fromClasses.incentive ? `, plus last month's incentive on ${fromClasses.incentiveClasses} class units` : ''}`;
         pay.push({ date, key: date, name: s.name, amount: fromClasses.amount, kind: 'pay', estimate: !fromClasses.weekOver, salary: false, note, gig: true });
       } else {
-        pay.push({ date, key: date, name: s.name, amount, kind: 'pay', estimate, salary: !estimate, note: estimate ? 'average of recent payments' : undefined, gig: isGigPay(s) });
+        const changed = amountOn(payAhead, s.id, date);
+        if (changed != null) pay.push({ date, key: date, name: s.name, amount: round(changed), kind: 'pay', estimate: false, salary: !estimate, note: 'the new amount you entered', planned: true, gig: isGigPay(s) });
+        else pay.push({ date, key: date, name: s.name, amount, kind: 'pay', estimate, salary: !estimate, note: estimate ? 'average of recent payments' : undefined, gig: isGigPay(s) });
       }
     }
   }
@@ -239,32 +249,50 @@ export function outlook() {
   const salaryDays = [...new Set(pay.filter((p) => p.salary).map((p) => p.date))].sort();
   const nextPayday = salaryDays[0] || null;
   // Show through the second upcoming salary payday, or three weeks if unknown.
-  const horizon = salaryDays[1] || addDays(today, 21);
+  const horizon = until || salaryDays[1] || addDays(today, 21);
 
   // Bills, and regular card payments, that come out of checking.
   const categories = Object.fromEntries(db.prepare('SELECT id, icon FROM categories').all().map((c) => [c.id, c.icon]));
   const out = [];
   // A bill on its own rhythm (every two weeks, say) can fall due more than once before the horizon.
-  const dues = (r) => (r.every_unit ? occurrences(r, today, horizon) : [nextDue(r, today)]);
+  // Looking further ahead, something monthly falls on its day in each later month too (the last day of a short month).
+  const later = (first, day) => {
+    const list = [first];
+    if (!until) return list;
+    const [y, m] = first.split('-').map(Number);
+    for (let i = 0; i < 12; i++) {
+      const d = iso(new Date(y, m + i, Math.min(day, new Date(y, m + i + 1, 0).getDate())));
+      if (d > horizon) break;
+      list.push(d);
+    }
+    return list;
+  };
+  const dues = (r) => {
+    if (r.every_unit) return occurrences(r, today, horizon);
+    const first = nextDue(r, today);
+    return r.month ? [first] : later(first, Number(r.day) || Number(first.slice(8)));
+  };
   for (const r of getRecurrings()) for (const due of dues(r)) {
     const date = moved('bill', r.name, due) || due;
     if (date > horizon) continue;
     const onCard = r.account_type === 'credit';
     // A bill that's already pending at the bank has left the available balance, so don't take it out twice.
     const set = yours('bill', r.name, due);
-    const amount = set ?? r.amount;
+    const planned = set == null ? amountOn(billAhead, billRef(r.name), due) : null;
+    const amount = set ?? planned ?? r.amount;
     const i = onCard ? -1 : pendingTx.findIndex((p) => Math.abs(-p.amount - amount) <= Math.max(0.01, amount * 0.02));
     const alreadyOut = i >= 0;
     if (alreadyOut) pendingTx.splice(i, 1);
-    out.push({ date, key: due, ...(date !== due ? { usualDate: due } : {}), name: r.name, amount: -round(amount), kind: 'bill', estimate: set == null && r.variable === true && r.known !== true, onCard, alreadyOut, icon: categories[r.category_id], ...(set != null ? { set: true, usual: round(r.amount) } : {}) });
+    out.push({ date, key: due, ...(date !== due ? { usualDate: due } : {}), name: r.name, amount: -round(amount), kind: 'bill', estimate: set == null && planned == null && r.variable === true && r.known !== true, ...(planned != null ? { planned: true, usual: round(r.amount) } : {}), onCard, alreadyOut, icon: categories[r.category_id], ...(set != null ? { set: true, usual: round(r.amount) } : {}) });
   }
   for (const r of getRegularTransfers()) {
     // Same day next month as the last one.
     const [y, m, d] = r.last.split('-').map(Number);
-    const due = iso(new Date(y, m, d));
+    for (const due of later(iso(new Date(y, m, d)), d)) {
     const date = moved('card', r.name, due) || due;
     const set = yours('card', r.name, due);
     if (due >= today && date <= horizon) out.push({ date, key: due, ...(date !== due ? { usualDate: due } : {}), name: r.name, amount: -round(set ?? r.amount), kind: 'card', estimate: set == null && r.variable, onCard: false, icon: '💳', ...(set != null ? { set: true, usual: round(r.amount) } : {}) });
+    }
   }
 
   const events = [...pay.filter((p) => p.date <= horizon).map((p) => ({ ...p, icon: '💵', onCard: false })), ...out]

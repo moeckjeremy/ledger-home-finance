@@ -767,6 +767,16 @@ html[data-season] .mail-when .days button.on:not(.primary):not(.link) { backgrou
 .bill-cal-amt { font-weight: 600; font-size: 13px; max-width: 100%; overflow: hidden; text-overflow: clip; white-space: nowrap; }
 .bill-cal-names { font-size: 11px; color: var(--ink2); line-height: 1.25; max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
 .bill-cal-key { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; }
+.bill-cal-bal { margin-top: auto; font-size: 11.5px; color: var(--ink3); white-space: nowrap; max-width: 100%; overflow: hidden; }
+.bill-cal-bal.low, .bill-cal-proj b.low { color: #d9962b; }
+.bill-cal-bal.neg, .bill-cal-proj b.neg, .bill-cal-list b.neg { color: var(--bad, #e5484d); }
+.bill-cal-list b.low { color: #d9962b; }
+.bill-cal-bal.lowest { font-weight: 700; text-decoration: underline; }
+.bill-cal-bal-key { display: inline-block; font-size: 11.5px; color: var(--ink3); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; margin-right: 2px; }
+.bill-cal-proj { display: grid; gap: 8px; margin-top: 10px; }
+.bill-cal-proj .sub { margin: 0; }
+.bill-cal-proj .check { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; }
+.bill-cal-test { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; }
 .bill-cal-list { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
 .bill-cal-list h3 { margin: 0 0 4px; font-size: 15px; }
 .bill-cal-add { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; }
@@ -778,10 +788,19 @@ html[data-season] .mail-when .days button.on:not(.primary):not(.link) { backgrou
   .bill-cal-day { min-height: 54px; padding: 4px 3px; align-items: center; text-align: center; border-radius: 8px; }
   .bill-cal-names { display: none; }
   .bill-cal-amt { font-size: 10.5px; font-weight: 600; }
+  .bill-cal-bal { font-size: 9.5px; }
+  .bill-cal-day { min-height: 62px; }
   .bill-cal-head b { min-width: 0; flex: 0 0 auto; font-size: 17px; white-space: nowrap; }
   .bill-cal-head .grow { flex-basis: 100%; height: 0; }
 }
 /* The two ways a property's value is kept, chosen in the add form. */
+.car-facts { display: grid; gap: 8px; }
+.change-ahead { display: block; color: var(--ink2); }
+.change-ahead b { color: var(--ink); }
+.change-form { align-items: flex-end; flex-wrap: wrap; }
+.change-form label { display: grid; gap: 3px; font-size: 12.5px; color: var(--ink2); min-width: 0; }
+.change-form input { min-width: 0; }
+.payday-ahead { display: grid; gap: 4px; margin: -2px 0 6px; }
 .value-choice { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
 .value-choice label { display: flex; align-items: flex-start; gap: 9px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; min-width: 0; }
 .value-choice label.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); }

@@ -5,7 +5,7 @@ import { GoalsCard } from './Goals';
 import { goTo } from '../go';
 import { AllowanceCard } from './Allowance';
 import { InvestmentsCard } from './Investments';
-import { PropertyValue } from './PropertyValue';
+import { PropertyValue, KINDS as CAR_KINDS, HOLDS as CAR_HOLDS, ruleRate } from './PropertyValue';
 import { StatementCheck } from './StatementCheck';
 import { Logo, MoneyInput, More, Skeleton, reducedMotion } from '../ui';
 
@@ -130,13 +130,36 @@ function AddAccount({ onChanged }: { onChanged: () => void }) {
   const [how, setHow] = useState<'hand' | 'auto' | 'dep'>('hand');
   const auto = f.type === 'property' && how === 'auto';
   const dep = f.type === 'property' && how === 'dep';
+  // A vehicle lowered each month is set up here in one go (the owner: "it has me enter the same information
+  // on my car twice" when the form was followed by a second panel asking how its value is kept all over again).
+  const [car, setCar] = useState({ year: '', kind: 'car', hold: 'average', miles: '' });
+  const [yearTyped, setYearTyped] = useState(false);
+  const thisYear = new Date().getFullYear();
+  const yearOk = /^\d{4}$/.test(car.year) && Number(car.year) >= 1980 && Number(car.year) <= thisYear + 1;
+  const worth = Number(f.balance) || 0;
+  const rate = dep && yearOk ? ruleRate(Number(car.year), car.kind, null, thisYear, car.hold) : 0;
+  // A year in the name ("2020 RAV4") fills the model year, unless they typed one themselves.
+  const setName = (name: string) => {
+    const y = name.match(/\b(19[89]\d|20\d\d)\b/)?.[1];
+    setF({ ...f, name }); setErr('');
+    if (y && !yearTyped && Number(y) <= thisYear + 1) setCar((c) => ({ ...c, year: y }));
+  };
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (dep && !(worth > 0)) return setErr("Type what it's worth today, so there is a value to lower.");
+    if (dep && !yearOk) return setErr('Enter the model year, such as 2021.');
     try {
       const made = await api('/api/setup/account', { method: 'POST', body: { ...f, balance: auto || f.balance === '' ? 0 : Number(f.balance) } });
-      // The new row opens "How its value is kept" at the lookup's steps (it reads this as it appears).
-      if (auto || dep) { try { sessionStorage.setItem('ledger-value-how', `${made.id}:${dep ? 'dep' : 'auto'}`); } catch { /* private window: they open it from the row */ } }
-      setF({ name: '', type: f.type, balance: '' }); setHow('hand'); setOpen(false); setErr(''); onChanged();
+      if (dep) {
+        // Everything was asked for above, so nothing more opens: the lowering and the first odometer reading are saved now.
+        try {
+          await api(`/api/accounts/${made.id}/depreciate`, { method: 'PUT', body: { on: true, use: 'auto', year: Number(car.year), kind: car.kind, hold: car.hold } });
+          if (car.miles) await api(`/api/vehicles/${made.id}/odometer`, { method: 'POST', body: { miles: car.miles } });
+        } catch { try { sessionStorage.setItem('ledger-value-how', `${made.id}:dep`); } catch { /* they open it from the row */ } }
+      }
+      // A home for the monthly lookup still opens "How its value is kept" at its steps (the row reads this as it appears).
+      if (auto) { try { sessionStorage.setItem('ledger-value-how', `${made.id}:auto`); } catch { /* private window: they open it from the row */ } }
+      setF({ name: '', type: f.type, balance: '' }); setCar({ year: '', kind: 'car', hold: 'average', miles: '' }); setYearTyped(false); setHow('hand'); setOpen(false); setErr(''); onChanged();
     }
     catch (e: any) { setErr(e.message); }
   };
@@ -145,7 +168,7 @@ function AddAccount({ onChanged }: { onChanged: () => void }) {
     <form className="add-account open" onSubmit={add} noValidate>
       <b>Add an account by hand</b>
       <div className="edit-fields">
-        <label>Name<input type="text" value={f.name} maxLength={80} placeholder={f.type === 'property' ? (how === 'dep' ? 'Family car' : 'Our house') : 'Checking'} autoFocus onChange={(e) => { setF({ ...f, name: e.target.value }); setErr(''); }} /></label>
+        <label>Name<input type="text" value={f.name} maxLength={80} placeholder={f.type === 'property' ? (how === 'dep' ? 'Family car' : 'Our house') : 'Checking'} autoFocus onChange={(e) => setName(e.target.value)} /></label>
         <label>Kind<select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>{KINDS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
         {!auto && <label>{f.type === 'credit' ? 'Owed on it today' : f.type === 'property' ? "What it's worth today" : "What's in it today"}<MoneyInput value={f.balance} placeholder="0.00" onChange={(v) => setF({ ...f, balance: v })} /></label>}
       </div>
@@ -153,14 +176,25 @@ function AddAccount({ onChanged }: { onChanged: () => void }) {
         <div className="value-choice" role="radiogroup" aria-label="How its value is kept" data-go="value-choice">
           <label className={how === 'hand' ? 'on' : ''}><input type="radio" name="value-how" checked={how === 'hand'} onChange={() => setHow('hand')} /><span><b>I'll type its value</b><small>For a home, a vehicle or anything else. Buttons open Zillow or Kelley Blue Book in your own browser when you want to check it. Nothing is sent anywhere.</small></span></label>
           <label className={how === 'auto' ? 'on' : ''}><input type="radio" name="value-how" checked={how === 'auto'} onChange={() => setHow('auto')} /><span><b>Look it up each month</b><small>For a home in the United States. Ledger asks RentCast, a property data service, once a month. It needs a free key you make there and the home's address, which is sent to RentCast. The steps come next.</small></span></label>
-          <label className={how === 'dep' ? 'on' : ''}><input type="radio" name="value-how" checked={how === 'dep'} onChange={() => setHow('dep')} /><span><b>Lower it a little each month</b><small>For a car or truck. Type what it's worth today, then give its model year and kind: Ledger lowers the value each month by a rule of thumb. An estimate, not a Kelley Blue Book value. Nothing is sent anywhere.</small></span></label>
+          <label className={how === 'dep' ? 'on' : ''}><input type="radio" name="value-how" checked={how === 'dep'} onChange={() => setHow('dep')} /><span><b>Lower it a little each month</b><small>For a car or truck. Ledger lowers the value you type each month by a rule of thumb, from the few details asked just below. An estimate, not a Kelley Blue Book value. Nothing is sent anywhere.</small></span></label>
+        </div>
+      )}
+      {dep && (
+        <div className="car-facts" data-go="car-facts">
+          <div className="add-grid">
+            <label className="field"><span>Model year</span><input type="text" inputMode="numeric" maxLength={4} value={car.year} placeholder={String(thisYear - 5)} onChange={(e) => { setYearTyped(true); setCar({ ...car, year: e.target.value.replace(/\D/g, '') }); setErr(''); }} /></label>
+            <label className="field"><span>What kind of vehicle</span><select value={car.kind} onChange={(e) => setCar({ ...car, kind: e.target.value })}>{CAR_KINDS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+            <label className="field"><span>Odometer today, in miles (optional)</span><input type="text" inputMode="numeric" value={car.miles} onChange={(e) => setCar({ ...car, miles: e.target.value.replace(/[^0-9,]/g, '') })} /></label>
+            <label className="field" style={{ gridColumn: '1 / -1' }}><span>How well does this model hold its value?</span><select value={car.hold} onChange={(e) => setCar({ ...car, hold: e.target.value })}>{CAR_HOLDS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+          </div>
+          {rate > 0 && <small><b>{rate}% a year</b> for now{worth > 0 ? `: ${money(worth)} today would be about ${money(Math.round(worth * (1 - rate / 100)))} in a year` : ''}. That is all Ledger needs: nothing more is asked after you add it. The rate, a VIN lookup and where the figure comes from are under "How its value is kept" on its row.</small>}
         </div>
       )}
       {f.type === 'property'
         ? <small>{auto ? 'Give it a name such as "Our house". The address is asked for in the next step, in its own box, so it needn\'t go in the name.' : 'Your net worth then counts it beside the mortgage or loan that paid for it. Update it whenever you like with "Set value".'} You can switch between the two later with "How its value is kept" on its row.</small>
         : <small>Its balance then follows the purchases, deposits and transfers you enter on it. You can correct it at any time with "Set balance".</small>}
       {err && <p className="error" role="alert">{err}</p>}
-      <div className="add-actions"><button type="submit" className="primary">{auto ? 'Add it and set up the lookup' : dep ? 'Add it and set the rate' : 'Add account'}</button><button type="button" onClick={() => setOpen(false)}>Cancel</button></div>
+      <div className="add-actions"><button type="submit" className="primary">{auto ? 'Add it and set up the lookup' : dep ? 'Add it' : 'Add account'}</button><button type="button" onClick={() => setOpen(false)}>Cancel</button></div>
     </form>
   );
 }

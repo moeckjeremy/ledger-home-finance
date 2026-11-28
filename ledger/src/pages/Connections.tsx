@@ -3,6 +3,7 @@ import { GO, jump } from '../go';
 import { SettingsSearch } from '../SettingsSearch';
 import { CurrencySettings } from '../Currency';
 import { BudgetMonth, budgetDayWords } from '../BudgetMonth';
+import { ChangeAhead } from '../ChangeAhead';
 import { currencyCode, budgetStartDay } from '../lib';
 import { GigPay } from './GigPay';
 import { UpdateSettings } from '../UpdateNotice';
@@ -978,6 +979,8 @@ function PayCalendar({ p, onSaved }: { p: any; onSaved: () => void }) {
 const PAY_KIND_NAMES: Record<PayKind, string> = { job: 'A paycheck', benefits: 'Benefits', pension: 'A pension', other: 'Other income' };
 
 export function Paydays() {
+  // The payday whose "amount is changing" form is open (src/ChangeAhead.tsx).
+  const [changingPay, setChangingPay] = useState<number | null>(null);
   const { data: list, reload } = useData<any[]>('/api/paydays');
   const taxesOn = useTaxes();
   // Inside the setup guide the side gig has its own step, and Settings is not on screen to jump to.
@@ -1014,6 +1017,10 @@ export function Paydays() {
             </span>
             <button className="link" onClick={() => start(p)}>Change</button>
             <button className="link" onClick={() => remove(p)}>Remove</button>
+          </div>
+          <div className="payday-ahead">
+            {changingPay !== p.id && !p.gig && <small><button className="link" data-go="pay-change" onClick={() => setChangingPay(p.id)}>Its amount is changing (a raise, say)</button></small>}
+            <ChangeAhead kind="pay" id={p.id} changes={p.changes} open={changingPay === p.id} onClose={() => setChangingPay(null)} onChanged={changed} />
           </div>
           <PayCalendar p={p} onSaved={changed} />
         </div>

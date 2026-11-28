@@ -17,6 +17,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { db, iso } from './db.js';
 import { payDates } from './cashflow.js';
 import { isGigPay } from './gig.js';
+import { changesOf } from './changes.js';
 import { apiKey, model, readableError } from './recap.js';
 import { noteUsage, aiSource, limitMessage } from './ai.js';
 
@@ -58,6 +59,7 @@ const fromPattern = (p) => String(p || '').replace(/%/g, '').trim();
 function list() {
   const today = iso(new Date());
   const ahead = iso(new Date(Date.now() + 70 * 86400000));
+  const coming = changesOf('pay');   // amounts said to change from a day (server/changes.js)
   return db.prepare('SELECT * FROM pay_schedules ORDER BY id').all().map((s) => {
     const last = s.merchant_like ? db.prepare('SELECT date, amount FROM transactions WHERE merchant LIKE ? AND amount > 0 ORDER BY date DESC LIMIT 1').get(s.merchant_like) : null;
     const years = db.prepare('SELECT substr(date, 1, 4) year, COUNT(*) n FROM pay_dates WHERE schedule_id = ? GROUP BY year ORDER BY year').all(s.id);
@@ -66,6 +68,7 @@ function list() {
       amount_mode: s.amount_mode, amount: s.amount ?? null, gig: isGigPay(s), kind: KINDS.includes(s.kind) ? s.kind : 'job',
       lastDeposit: last || null, next: payDates(s.rule, today, ahead, s.id).slice(0, 3),
       calendars: years.map((y) => ({ year: y.year, dates: y.n })),
+      changes: coming.get(String(s.id)) || [],
     };
   });
 }

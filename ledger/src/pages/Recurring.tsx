@@ -2,6 +2,7 @@ import { GO, jump } from '../go';
 import { useState } from 'react';
 import { api, cents, dayShort, daysUntil, money, useData } from '../lib';
 import { CategoryPicker, Logo, LogoPicker, More, Skeleton, offerUndo } from '../ui';
+import { ChangeAhead } from '../ChangeAhead';
 import { BillCalendar } from './BillCalendar';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -86,6 +87,8 @@ export default function Recurring() {
   // The bill whose pay link is being typed (the address of the company's own payment page).
   const [linking, setLinking] = useState<string | number | null>(null);
   const [linkUrl, setLinkUrl] = useState('');
+  // The bill whose "amount is changing" form is open (src/ChangeAhead.tsx).
+  const [changing, setChanging] = useState<string | number | null>(null);
   const [linkErr, setLinkErr] = useState('');
   const [renameErr, setRenameErr] = useState('');
   if (error) return <p className="error">{error}</p>;
@@ -208,6 +211,8 @@ export default function Recurring() {
                 )}
                 {linking === r.id && linkErr && <small className="bad" role="alert">{linkErr}</small>}
                 {linking === r.id && <small>Ledger doesn't pay anything. This only opens the company's own page in a new tab.</small>}
+                {changing !== r.id && !r.seasonal && <small className="wide-only"><button className="link" data-go="bill-change" onClick={() => setChanging(r.id)}>Its amount is changing</button></small>}
+                <ChangeAhead kind="bill" name={r.name} changes={r.changes} open={changing === r.id} onClose={() => setChanging(null)} onChanged={refresh} />
                 {r.previous && <small className={r.amount > r.previous ? 'bad' : 'good'}>{r.amount > r.previous ? 'Up' : 'Down'} from {cents(r.previous)} last time</small>}
               </span>
               <span style={{ textAlign: 'right' }}>
@@ -218,6 +223,7 @@ export default function Recurring() {
               <More name={r.name} sub={`${cents(r.amount)} · ${r.category}`} items={() => [
                 r.pay_url && { label: 'Pay it', hint: `Opens ${site(r.pay_url)} in a new tab`, run: () => { window.open(r.pay_url, '_blank', 'noopener,noreferrer'); } },
                 { label: r.pay_url ? 'Change the pay link' : 'Add a pay link', hint: 'The page where you pay this bill', run: () => openLink(r) },
+                !r.seasonal && { label: 'Its amount is changing', hint: 'A new amount that starts on a day ahead', run: () => setChanging(r.id) },
                 { label: 'Rename', hint: "Used everywhere this bill's payments appear", run: () => { setRenaming(r.id); setNewName(r.name); setRenameErr(''); } },
                 { label: 'Change the icon', run: () => dispatchEvent(new CustomEvent('ledger-logo-edit', { detail: { key: r.name, label: String(r.name).trim() } })) },
                 r.source === 'manual' && !r.seasonal && { label: 'Edit', hint: 'Amount, day or category', run: () => { setAdding(false); setEditing(r); scrollTo({ top: 0 }); } },

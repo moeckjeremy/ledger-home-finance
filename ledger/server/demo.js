@@ -34,7 +34,7 @@ const ALLOWED = [
   /^\/categories(\/\d+(\/(aside|hide|merge|move|place))?)?$/,
   /^\/category-groups(\/\d+(\/move)?)?$/,
   /^\/budget-plan$/, /^\/zero(\/(assign|fill|move|reset))?$/,
-  /^\/recurrings(\/\d+|\/ignore(\/\d+)?)?$/, /^\/bills\/(rename|link)$/, /^\/cashflow\/(amount|pending)$/,
+  /^\/recurrings(\/\d+|\/ignore(\/\d+)?)?$/, /^\/bills\/(rename|link)$/, /^\/changes(\/\d+)?$/, /^\/cashflow\/(amount|pending)$/,
   /^\/goals(\/\d+(\/move)?)?$/, /^\/holdings\/\d+$/, /^\/investments\/\d+\/holdings$/,
   /^\/allowance(\/kids(\/\d+(\/entries)?)?|\/entries\/\d+)?$/,
   /^\/paydays(\/\d+(\/calendar)?)?$/, /^\/paystub\/(apply|names|remind|skip|\d+)$/,

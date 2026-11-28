@@ -13,15 +13,18 @@
 // device remembers what it has seen.
 export type NewsGo = { page?: string; fold?: string; at?: string; open?: 'cfo' };
 export const JUST_ADDED: [title: string, text: string, more?: { date: string; go?: NewsGo }][] = [
+  ['Your balance on every day ahead', 'On the Recurring page, switch to Calendar: each coming day shows your projected checking balance after that day\'s bills and paychecks, and "Test a purchase" shows what spending an amount on a chosen day would do first.', { date: '2026-11-27', go: { page: 'recurring', at: '[data-go="cal-test"], [data-go="cal-balance"], [data-go="bills-view"]' } }],
   ['Your home in your net worth', 'Add your home, a vehicle or other property on the Accounts page, at a value you type, so your net worth counts what your mortgage and car loans paid for. Reports also has a new picture of where the month\'s money went, and Recurring a calendar of your bills.', { date: '2026-11-27', go: { page: 'accounts', at: '[data-go="add-by-hand"]' } }],
   ['Try a different payoff plan', 'On the Debt page, "Try a different plan" sets smallest balance first beside highest rate first, and lets you try another monthly extra or a one-time amount to see what it would do. Nothing changes until you decide.', { date: '2026-11-27', go: { page: 'debt', fold: 'debt-try', at: '[data-go="plan-try"]' } }],
   ['Your own order and groups', 'On the Budgets page, move categories up and down, put them in groups of your own, merge two together or hide one you no longer use. Accounts and savings goals can be reordered too.', { date: '2026-11-26', go: { page: 'budgets', at: '[data-go="cat-organise"], [data-go="cat-group"]' } }],
   ['Leave an account out of the budget', 'For "fun money" accounts, a child\'s account, or anything you want to see but not count. On the Accounts page, choose "Leave out of the budget" on an account: its balance still shows, and its spending stops counting toward your budgets and totals.', { date: '2026-11-24', go: { page: 'accounts', at: '[data-go="off-budget"], [data-go~="account-row"] .more-btn' } }],
-  ['Allowances', 'A notebook of what you hold for each child: a weekly allowance that adds itself, money for chores, and what they spend, with spend, save and give jars if you like. Switch it on in Settings, "Allowances".', { date: '2026-11-24', go: { page: 'connections', fold: 'allowance', at: '[data-go="allowance-switch"]' } }],
 ];
 
 export const UPDATES: [date: string, items: string[]][] = [
   ['2026-11-27', [
+    'A bill or a payday can be told its amount changes from a day ahead (a rent rise, a raise): "Its amount is changing" on the bill, or on the payday in Settings. The forecast and the bills calendar use the new amount from that day.',
+    'The bills calendar on the Recurring page shows your projected checking balance on every day ahead, and "Test a purchase" under it shows what an amount on a chosen day would do before you spend it.',
+    'Adding a vehicle is one step: the form asks its model year, kind and odometer itself, so nothing more opens afterwards.',
     'Sharper logos: Settings, "AI recap and logos" has a place for a free Logo.dev key of your own, which swaps the small website icons for proper company logos.',
     'Your budget month can start on a day other than the 1st, such as payday on the 20th: Budgets, "When your budget month starts" (or Settings, "Budget month"). Budgets, what is spent and left, carry-over, reports and the recap follow it; taxes and bill dates stay on the calendar.',
     'The card about purchases filed under "Other" has "Show them", which lists them shop by shop so you can file a shop yourself, and "Hide for good" if you would rather leave them be.',

@@ -36,10 +36,10 @@ function Mileage({ id, onSaved, hand }: { id: number; onSaved: () => void; hand?
   );
 }
 // The worked-out rule, the same sums as ruleRate in server/depreciate.js: keep the two in step.
-const KINDS: [string, string, number][] = [['car', 'Car', 1], ['suv', 'SUV or crossover', 1.1], ['truck', 'Pickup truck', 0.9], ['hybrid', 'Hybrid', 1], ['ev', 'Electric', 1]];
-const HOLDS: [string, string, number][] = [['well', 'Well: known for it (most Toyotas, Hondas and Subarus)', 0.75], ['average', 'About average, or not sure', 1], ['poorly', 'Poorly: known for losing value fast (many German luxury cars, some others)', 1.5]];
+export const KINDS: [string, string, number][] = [['car', 'Car', 1], ['suv', 'SUV or crossover', 1.1], ['truck', 'Pickup truck', 0.9], ['hybrid', 'Hybrid', 1], ['ev', 'Electric', 1]];
+export const HOLDS: [string, string, number][] = [['well', 'Well: known for it (most Toyotas, Hondas and Subarus)', 0.75], ['average', 'About average, or not sure', 1], ['poorly', 'Poorly: known for losing value fast (many German luxury cars, some others)', 1.5]];
 const mileStep = (kind: string) => (kind === 'truck' || kind === 'ev' ? 0.5 : 0.35);
-function ruleRate(modelYear: number, kind: string, miles: number | null, calYear: number, hold = 'average') {
+export function ruleRate(modelYear: number, kind: string, miles: number | null, calYear: number, hold = 'average') {
   const age = Math.max(0, calYear - modelYear);
   const base = age < 1 ? 15 : age < 3 ? 8 : age < 7 ? 10 : 13.5;
   const h = HOLDS.find((x) => x[0] === hold)?.[2] || 1, held = age < 7 ? h : 1 + (h - 1) / 2;
